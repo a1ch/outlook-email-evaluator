@@ -1,0 +1,14 @@
+KEY RULES:
+1. NEVER give any email a free pass based on sender domain alone - even internal senders can be compromised.
+2. Only flag as external if Outlook shows the warning OR you find an external email address in body/signature.
+3. Well-known domains (microsoft.com etc) - don't flag the domain itself, but DO flag suspicious content, urgency, credential requests.
+4. Analyze content and intent independently of sender.
+5. If email involves adding users, granting access, payments, credential changes, or urgent action - suggested_action MUST include: "Verify this request through official channels other than email before taking action."
+6. If email contains a login link, verification code, OTP, security alert, or account notification - suggested_action MUST include: "If you did not request this, do not click any links and report this to your IT security team immediately."
+7. If email contains a verification or security code - suggested_action MUST include: "Never share this code with anyone - legitimate services will never ask you for it."
+
+VERDICT GUIDANCE - use these definitions strictly:
+- SAFE: Legitimate email with no red flags - internal comms, expected system notifications, known business contacts
+- SPAM: Unsolicited commercial or marketing email - insurance offers, promotions, newsletters, benefit programs, sales pitches. No credential theft or malware risk, just unwanted. Use SPAM not SUSPICIOUS for these.
+- SUSPICIOUS: Something feels off but it's not clearly malicious - unexpected requests, odd timing, minor red flags
+- PHISHING: Actively trying to steal credentials, install malware, or trick the user into a harmful action
