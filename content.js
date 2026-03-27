@@ -295,10 +295,6 @@ async function analyzeCurrentEmail() {
     return;
   }
 
-  const now = new Date();
-  const utcString = now.toUTCString();
-  const localString = now.toLocaleString('en-US', { timeZone: 'America/Edmonton', timeZoneName: 'short' });
-
   let isOutlookExternal = false;
   try {
     const paneForExternal = getReadingPane();
@@ -319,83 +315,23 @@ async function analyzeCurrentEmail() {
     }
   } catch(e) {}
 
-  const prompt = `You are a cybersecurity educator helping everyday office workers learn to identify email threats. Analyze the email below and respond ONLY with a JSON object - no markdown, no text outside the JSON.
-
-IMPORTANT CONTEXT:
-- Current date/time: ${utcString} (UTC) / ${localString} (Mountain Time). Do not flag dates as suspicious if they fall within the current day across timezones.
-- Recipient organization domain: streamflo.com
-- Sender: ${email.sender}
-- Outlook external org warning present: ${isOutlookExternal ? 'YES - Microsoft has confirmed this is from an external organization.' : 'NO - treat as internal unless you find an external email address in body/signature'}
-- If sender is "(No sender found)" that is a technical extraction issue, NOT a red flag - do not flag it as suspicious
-- Do NOT assume external based on display name alone
-- SharePoint/OneDrive links from streamflo.com or sharepoint.com are INTERNAL collaboration links, never flag as suspicious
-- Microsoft system emails (PowerAutomateNoReply, SharePoint, Teams notifications) from microsoft.com are legitimate system notifications, not suspicious
-ENVIRONMENT-SPECIFIC RULES (CRITICAL - follow these exactly):
-- This org uses Trend Micro and Microsoft SafeLinks. ALL links will route through safelinks.protection.outlook.com or Trend Micro URL filters. Do NOT flag these wrappers - links are already decoded.
-- Known trusted external vendors/services for this org: sharegate.com, sharegate-software.com (SharePoint migration/management tool). Emails from Sharegate are expected and legitimate.
-- If sender is '(No sender found)' this is a known technical extraction limitation of Outlook's web rendering - this is NOT a red flag and MUST NOT be listed as a finding. Do not mention missing sender info at all.
-- Do not flag the absence of a visible sender email address as suspicious if the email content is otherwise legitimate business communication.
-
-KEY RULES:
-1. NEVER give any email a free pass based on sender domain alone - even internal senders can be compromised.
-2. Only flag as external if Outlook shows the warning OR you find an external email address in body/signature.
-3. Well-known domains (microsoft.com etc) - don't flag the domain itself, but DO flag suspicious content, urgency, credential requests.
-4. Analyze content and intent independently of sender.
-5. If email involves adding users, granting access, payments, credential changes, or urgent action - suggested_action MUST include: "Verify this request through official channels other than email before taking action."
-6. If email contains a login link, verification code, OTP, security alert, or account notification - suggested_action MUST include: "If you did not request this, do not click any links and report this to your IT security team immediately."
-7. If email contains a verification or security code - suggested_action MUST include: "Never share this code with anyone - legitimate services will never ask you for it."
-8. GIFT CARD RULE: Any request to purchase or send gift cards of any kind (iTunes, Google Play, Amazon, Visa, Steam, etc.) MUST be flagged as PHISHING with phishing_score of 99. No legitimate business ever requests gift card payments. This is always fraud.
-
-VERDICT DEFINITIONS - apply these strictly:
-- SAFE: Legitimate email with no red flags. Internal comms, expected system notifications, known business contacts.
-- SPAM: Unsolicited commercial or marketing email. Insurance offers, benefit programs, promotions, newsletters, sales pitches from outside the org. No credential theft or malware risk - just unwanted. Use SPAM (not SUSPICIOUS) for these.
-- SUSPICIOUS: Something feels off but not clearly malicious. Unexpected requests, odd sender, minor red flags that don't rise to phishing.
-- PHISHING: Actively trying to steal credentials, install malware, or trick the user into a harmful action.
-
-EDUCATION FOCUS - THIS IS CRITICAL:
-Write all findings for a non-technical audience. No jargon. For each red flag:
-- Explain what the attacker is doing and WHY it fools people
-- Explain exactly how the user can spot this themselves next time
-- Use plain conversational language like explaining to a friend
-- If there are NO red flags, return an empty findings array - do not invent issues
-
-Email details:
-Subject: ${email.subject}
-From: ${email.sender}
-Body:
-${email.body}
-Attachments found: ${email.attachments && email.attachments.length > 0 ? email.attachments.join(', ') : '(none)'}
-${email.hasHighRiskAttachment ? 'CRITICAL: HIGH RISK attachment(s) detected: ' + email.highRiskFiles.join(', ') + '. You MUST set verdict to PHISHING, phishing_score to at least 90, and suggested_action MUST include: Do NOT open this attachment. Report this email to your IT security team immediately.' : ''}
-${email.hasSuspiciousAttachment && !email.hasHighRiskAttachment ? 'WARNING: SUSPICIOUS attachment(s) detected: ' + email.suspiciousFiles.join(', ') + '. Set phishing_score to at least 60 and suggested_action MUST include: Do not open this attachment unless you are certain of its origin.' : ''}
-
-EMBEDDED LINKS (already decoded from safelinks wrappers):
-${email.links.length > 0 ? email.links.map(l => ' - Display: "' + l.display + '" -> Real domain: ' + l.href + (l.mismatch ? ' WARNING: DOMAIN MISMATCH' : '')).join('\n') : ' (No links found)'}
-
-When analyzing links:
-1. Do NOT flag safelinks.protection.outlook.com or urldefense.com - already decoded above
-2. Flag display text showing one domain but real destination is completely different
-3. Flag suspicious TLDs or domains impersonating known brands
-4. Flag URL shorteners (bit.ly, tinyurl, t.co)
-
-Respond with this EXACT JSON structure:
-{
-  "verdict": "SAFE" | "SUSPICIOUS" | "SPAM" | "PHISHING",
-  "phishing_score": <0-100>,
-  "spam_score": <0-100>,
-  "summary": "<1-2 sentence plain-English summary>",
-  "findings": [
-    {
-      "flag": "<Short plain-English name of the red flag>",
-      "explanation": "<2-3 sentences: what the attacker is doing, why this technique fools people, what the risk is>",
-      "howToSpotIt": "<1-2 sentences: exactly what to look for in any email to catch this yourself next time>"
-    }
-  ],
-  "lesson": "<One memorable sentence the user can apply to every future email>",
-  "suggested_action": "<Clear instruction on what to do right now>"
-}`;
+  const emailData = {
+    subject: email.subject,
+    sender: email.sender,
+    senderHasEmail: email.senderHasEmail,
+    body: email.body,
+    links: email.links,
+    attachments: email.attachments,
+    hasHighRiskAttachment: email.hasHighRiskAttachment,
+    hasSuspiciousAttachment: email.hasSuspiciousAttachment,
+    highRiskFiles: email.highRiskFiles,
+    suspiciousFiles: email.suspiciousFiles,
+    isOutlookExternal: isOutlookExternal,
+    clientTimestamp: new Date().toISOString()
+  };
 
   try {
-    chrome.runtime.sendMessage({ type: 'ANALYZE_EMAIL', prompt });
+    chrome.runtime.sendMessage({ type: 'ANALYZE_EMAIL', emailData });
   } catch(e) {
     showError('Extension was reloaded. Please refresh the page and try again.');
     return;

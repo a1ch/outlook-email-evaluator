@@ -1,54 +1,94 @@
 # Privacy Policy — Outlook Email Evaluator
 
-**Last updated: March 22, 2026**
+**Last updated: March 25, 2026**
 
 ## Overview
 
-Outlook Email Evaluator is a Chrome extension that analyzes emails in Microsoft Outlook Web for spam and phishing threats using the Anthropic Claude AI API. This privacy policy explains what data is collected, how it is used, and how it is protected.
+Outlook Email Evaluator is a Chrome extension that analyzes emails in Microsoft Outlook Web for spam and phishing threats using AI. This privacy policy explains what data is collected, how it flows, and how it is protected.
+
+## Architecture
+
+This extension does not call AI services directly from your browser. Instead, it sends email metadata to a secure proxy service hosted on Supabase (supabase.co), which forwards the request to the Anthropic Claude API for analysis. Your Anthropic API key is stored on the server and never touches your browser.
 
 ## Data Collected
 
-When you use the Analyze Email feature, the following information is extracted from the currently open email and sent to the Anthropic API:
+When you click Analyze Email, the following information is extracted from the currently open email and sent to the proxy service:
 
 - Email subject line
 - Sender display name
 - Email body text (up to 3,000 characters)
 - Hyperlink display text and destination domains extracted from the email body
+- Attachment file names (if present)
+- Whether Outlook flagged the sender as external
 
-No other data is collected or transmitted.
+No email content beyond these fields is collected or transmitted.
 
-## How Your Data Is Used
+## Data Flow
 
-Email content is sent solely to the Anthropic API (api.anthropic.com) for the purpose of analyzing the email for spam and phishing indicators. The analysis result is returned to your browser and displayed in the extension sidebar. No data is stored, logged, or shared by this extension beyond what is processed by the Anthropic API.
+| Step | What happens | Who can see email content? |
+|------|-------------|--------------------------|
+| 1. Your browser | Extension reads the email from the Outlook page | You (local only) |
+| 2. Network transit | Data sent over HTTPS (TLS encrypted) | No one (encrypted) |
+| 3. Supabase Edge Function | Validates your token, builds the AI prompt, forwards to Anthropic | In memory only during execution — not inspected, logged, or stored by Supabase |
+| 4. Anthropic API | Analyzes the email and returns a verdict | Anthropic (see below) |
+| 5. Response | Result returned to your browser and displayed in the sidebar | You (local only) |
+
+Email content is processed transiently at each step. No email content is persisted at any point in this chain.
 
 ## Anthropic API
 
-This extension uses the Anthropic Claude API to perform email analysis. Your use of this extension is subject to [Anthropic's Privacy Policy](https://www.anthropic.com/privacy) and [Terms of Service](https://www.anthropic.com/terms). Anthropic may process and retain data submitted to their API in accordance with their policies.
+This extension uses the Anthropic Claude API to perform email analysis. Per Anthropic's API data policy:
 
-## API Key Storage
+- API inputs are **not used for model training** by default.
+- API data may be **retained for up to 30 days** for trust and safety purposes, then deleted.
+- Anthropic employees may access data during that period for safety review.
 
-Your Anthropic API key is stored locally in your browser using Chrome's `chrome.storage.local` API. It is never transmitted to any server other than the Anthropic API, and only for the purpose of authenticating API requests. It is not accessible to any website or third party.
+Your use of this extension is subject to [Anthropic's Privacy Policy](https://www.anthropic.com/privacy) and [Terms of Service](https://www.anthropic.com/terms).
 
-## Settings Storage
+## Supabase
 
-Your configured organization domain and any custom instructions entered in the Settings tab are stored locally in your browser using Chrome's `chrome.storage.local` API. This data never leaves your device except as part of the prompt sent to the Anthropic API.
+The proxy service runs as a Supabase Edge Function. Supabase acts as a **data processor** (not a data controller) under their [Data Processing Addendum](https://supabase.com/legal/dpa). Supabase does not inspect, store, or share the email content that passes through the function. Infrastructure is hosted on AWS.
 
-## Email Content
+For details, see [Supabase Privacy Policy](https://supabase.com/docs/company/privacy).
 
-Email content is processed transiently — it is read from the page, sent to the Anthropic API, and the result is displayed. This extension does not store, log, cache, or transmit email content to any server other than the Anthropic API.
+## Scan Logging
+
+Each analysis logs the following to a Supabase database for usage reporting:
+
+- A hashed identifier for the extension token (not the token itself)
+- Verdict (Safe / Suspicious / Spam / Phishing)
+- Phishing risk score and spam score
+- Response time
+- Timestamp
+
+**No email content, subject lines, sender names, or message bodies are logged.** Scan logs are used solely for usage monitoring and abuse prevention.
+
+## Local Storage
+
+The following are stored locally in your browser using Chrome's `chrome.storage.local` API and never leave your device except as described above:
+
+- **Proxy URL** — the address of the Supabase Edge Function
+- **Extension token** — a shared secret that authenticates your requests to the proxy
+- **Organization domain** — used to detect external senders
+- **Custom instructions** — optional text passed to the AI on each analysis
 
 ## Permissions Used
 
 This extension requests the following Chrome permissions:
 
 - **activeTab** — to read the content of the Outlook tab you are currently viewing
-- **storage** — to store your API key and settings locally in your browser
-- **Host permission for outlook.cloud.microsoft and outlook.office.com** — to inject the sidebar UI into Outlook Web
-- **Host permission for api.anthropic.com** — to send analysis requests to the Anthropic API
+- **storage** — to store your settings locally in your browser
+- **Host permission for outlook.cloud.microsoft, outlook.office.com, and outlook.office365.com** — to inject the sidebar UI into Outlook Web
+- **Host permission for *.supabase.co** — to send analysis requests to the proxy service
 
 ## Data Sharing
 
-This extension does not sell, share, or disclose any user data to any third party other than the Anthropic API for the sole purpose of performing email analysis as requested by the user.
+This extension does not sell, share, or disclose any user data to any third party. Email data is transmitted only to:
+
+1. **Supabase** (infrastructure provider, data processor) — transiently, during Edge Function execution
+2. **Anthropic** (AI provider) — for email analysis, subject to their data retention policy
+
+No other parties receive any data.
 
 ## Children's Privacy
 
