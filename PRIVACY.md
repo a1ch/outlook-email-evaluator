@@ -21,6 +21,8 @@ When you click Analyze Email, the following information is extracted from the cu
 - Attachment file names (if present)
 - Whether Outlook flagged the sender as external
 
+Optional settings you save in the extension are also sent with each analysis request: your **organization domain** (e.g. `company.com`, used only to tailor internal-vs-external context in the AI prompt) and any **additional instructions** text you enter.
+
 No email content beyond these fields is collected or transmitted.
 
 ## Data Flow

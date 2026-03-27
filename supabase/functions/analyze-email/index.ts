@@ -19,6 +19,7 @@ const CORS_HEADERS = {
 
 const RATE_LIMIT_WINDOW_MS = 5000
 const MAX_BODY_LENGTH = 3000
+const MAX_TENANT_DOMAIN_LEN = 253
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface EmailLink {
@@ -44,10 +45,18 @@ interface EmailData {
 }
 
 // ── Prompt builder (all analysis logic lives here, not in the extension) ─────
-function buildPrompt(e: EmailData, customPrompt: string): string {
+function buildPrompt(e: EmailData, customPrompt: string, tenantDomain: string): string {
   const now = new Date()
   const utcString = now.toUTCString()
   const localString = now.toLocaleString("en-US", { timeZone: "America/Edmonton", timeZoneName: "short" })
+
+  const orgContext = tenantDomain
+    ? `Recipient organization primary domain (from extension settings): ${tenantDomain}`
+    : `Recipient organization domain: not configured in extension settings — infer internal vs external from email content, sender addresses, and Outlook external indicators only.`
+
+  const sharePointLine = tenantDomain
+    ? `SharePoint/OneDrive links from ${tenantDomain} or *.sharepoint.com are typically INTERNAL collaboration links for this org; do not flag them as suspicious without other red flags.`
+    : `SharePoint/OneDrive/Microsoft 365 links may be internal collaboration; do not flag without other red flags.`
 
   const customLine = customPrompt ? `- Additional instructions: ${customPrompt}` : ""
 
@@ -72,12 +81,12 @@ function buildPrompt(e: EmailData, customPrompt: string): string {
 
 IMPORTANT CONTEXT:
 - Current date/time: ${utcString} (UTC) / ${localString} (Mountain Time). Do not flag dates as suspicious if they fall within the current day across timezones.
-- Recipient organization domain: streamflo.com
+- ${orgContext}
 - Sender: ${e.sender}
 - Outlook external org warning present: ${externalNote}
 - If sender is "(No sender found)" that is a technical extraction issue, NOT a red flag - do not flag it as suspicious
 - Do NOT assume external based on display name alone
-- SharePoint/OneDrive links from streamflo.com or sharepoint.com are INTERNAL collaboration links, never flag as suspicious
+- ${sharePointLine}
 - Microsoft system emails (PowerAutomateNoReply, SharePoint, Teams notifications) from microsoft.com are legitimate system notifications, not suspicious
 ${customLine}
 ENVIRONMENT-SPECIFIC RULES (CRITICAL - follow these exactly):
@@ -207,10 +216,12 @@ serve(async (req) => {
   // ── Parse and validate request body ───────────────────────────────────────
   let emailData: EmailData
   let customPrompt: string
+  let tenantDomain: string
   try {
-    const body = parsedBody as { emailData?: EmailData; customPrompt?: string }
+    const body = parsedBody as { emailData?: EmailData; customPrompt?: string; tenantDomain?: string }
     emailData = body.emailData!
-    customPrompt = body.customPrompt || ""
+    customPrompt = typeof body.customPrompt === "string" ? body.customPrompt : ""
+    tenantDomain = sanitizeTenantDomain(body.tenantDomain)
     if (!emailData || typeof emailData.subject !== "string" || typeof emailData.body !== "string") {
       throw new Error("missing emailData")
     }
@@ -223,7 +234,7 @@ serve(async (req) => {
     return json({ error: "Invalid request body" }, 400, corsHeaders)
   }
 
-  const prompt = buildPrompt(emailData, customPrompt)
+  const prompt = buildPrompt(emailData, customPrompt, tenantDomain)
 
   // ── Forward to Anthropic ──────────────────────────────────────────────────
   try {
@@ -287,4 +298,16 @@ async function hashToken(token: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest("SHA-256", data)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("")
+}
+
+/** Normalize extension setting; allow only a hostname-like domain (no paths, ports, HTML). */
+function sanitizeTenantDomain(raw: unknown): string {
+  if (typeof raw !== "string") return ""
+  let s = raw.trim().toLowerCase().slice(0, MAX_TENANT_DOMAIN_LEN)
+  s = s.replace(/^https?:\/\//, "")
+  const host = s.split("/")[0]?.split(":")[0] ?? ""
+  if (!host) return ""
+  if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(host)) return ""
+  if (host.includes("..")) return ""
+  return host
 }

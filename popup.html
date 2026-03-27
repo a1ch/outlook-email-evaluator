@@ -161,7 +161,7 @@
     <div class="field">
       <label for="tenantDomain">Your Organization Domain</label>
       <input type="text" id="tenantDomain" placeholder="e.g. streamflo.com" />
-      <p class="hint">Used to detect external senders.</p>
+      <p class="hint">Your company’s email domain (e.g. contoso.com). Sent to the analysis server so the AI can treat SharePoint and internal senders correctly.</p>
     </div>
 
     <div class="field">
@@ -189,6 +189,7 @@
     <p class="hint">Rate limit: 1 analysis per 5 seconds.</p>
   </div>
 
+  <script src="proxy-utils.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

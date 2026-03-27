@@ -1,0 +1,12 @@
+{
+  "name": "outlook-email-evaluator",
+  "version": "1.1.0",
+  "description": "Unit tests for Outlook Email Evaluator Chrome extension",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}

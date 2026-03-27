@@ -1,18 +1,34 @@
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('Outlook Email Evaluator installed.');
-});
+importScripts('proxy-utils.js')
 
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('Outlook Email Evaluator installed.')
+})
+
+// Content script messages include sender.tab; other callers may not — guard before sendMessage.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'PING') {
+    return true
+  }
+
   if (message.type === 'ANALYZE_EMAIL') {
-    chrome.storage.local.get(['proxyUrl', 'extensionToken', 'customPrompt'], async (result) => {
-      const proxyUrl     = (result.proxyUrl || '').trim()
-      const extToken     = (result.extensionToken || '').trim()
+    if (!sender.tab?.id) return false
+    chrome.storage.local.get(['proxyUrl', 'extensionToken', 'customPrompt', 'tenantDomain'], async (result) => {
+      const proxyUrl = (result.proxyUrl || '').trim()
+      const extToken = (result.extensionToken || '').trim()
       const customPrompt = result.customPrompt || ''
+      const tenantDomain = (result.tenantDomain || '').trim()
 
       if (!proxyUrl) {
         chrome.tabs.sendMessage(sender.tab.id, {
           type: 'ANALYSIS_DONE',
           error: 'No proxy URL set. Click the extension icon and add your Supabase proxy URL.'
+        })
+        return
+      }
+      if (!isAllowedSupabaseFunctionUrl(proxyUrl, 'analyze-email')) {
+        chrome.tabs.sendMessage(sender.tab.id, {
+          type: 'ANALYSIS_DONE',
+          error: 'Invalid proxy URL. Use your Supabase HTTPS URL ending in /functions/v1/analyze-email'
         })
         return
       }
@@ -31,7 +47,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             'Content-Type': 'application/json',
             'x-extension-token': extToken,
           },
-          body: JSON.stringify({ emailData: message.emailData, customPrompt })
+          body: JSON.stringify({ emailData: message.emailData, customPrompt, tenantDomain })
         })
 
         if (response.status === 429) {
@@ -65,6 +81,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'SUBMIT_FEEDBACK') {
+    if (!sender.tab?.id) return false
     chrome.storage.local.get(['proxyUrl', 'extensionToken'], async (result) => {
       const proxyUrl = (result.proxyUrl || '').trim()
       const extToken = (result.extensionToken || '').trim()
@@ -76,7 +93,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       }
 
+      if (!isAllowedSupabaseFunctionUrl(proxyUrl, 'analyze-email')) {
+        chrome.tabs.sendMessage(sender.tab.id, {
+          type: 'FEEDBACK_RESULT', success: false,
+          error: 'Invalid proxy URL in settings.'
+        })
+        return
+      }
+
       const feedbackUrl = proxyUrl.replace(/\/analyze-email\/?$/, '/report-feedback')
+
+      if (!isAllowedSupabaseFunctionUrl(feedbackUrl, 'report-feedback')) {
+        chrome.tabs.sendMessage(sender.tab.id, {
+          type: 'FEEDBACK_RESULT', success: false,
+          error: 'Could not derive feedback URL from proxy. Check your Supabase function URL.'
+        })
+        return
+      }
 
       try {
         const response = await fetch(feedbackUrl, {
@@ -107,9 +140,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
     return true
   }
-})
-
-// Keep service worker alive
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === 'PING') return true
 })

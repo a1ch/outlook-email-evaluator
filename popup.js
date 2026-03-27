@@ -37,6 +37,10 @@ document.getElementById('saveConnection').addEventListener('click', async () => 
     return showStatus(status, 'Proxy URL must start with https://', false)
   }
 
+  if (!isAllowedSupabaseFunctionUrl(proxyUrl, 'analyze-email')) {
+    return showStatus(status, 'Proxy URL must be your Supabase function URL, e.g. https://YOUR_PROJECT.supabase.co/functions/v1/analyze-email', false)
+  }
+
   showStatus(status, '⏳ Testing connection...', true)
 
   // Save first, then test
