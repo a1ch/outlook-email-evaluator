@@ -63,6 +63,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
     return true
   }
+
+  if (message.type === 'SUBMIT_FEEDBACK') {
+    chrome.storage.local.get(['proxyUrl', 'extensionToken'], async (result) => {
+      const proxyUrl = (result.proxyUrl || '').trim()
+      const extToken = (result.extensionToken || '').trim()
+
+      if (!proxyUrl || !extToken) {
+        chrome.tabs.sendMessage(sender.tab.id, {
+          type: 'FEEDBACK_RESULT', success: false, error: 'Extension not configured.'
+        })
+        return
+      }
+
+      const feedbackUrl = proxyUrl.replace(/\/analyze-email\/?$/, '/report-feedback')
+
+      try {
+        const response = await fetch(feedbackUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-extension-token': extToken,
+          },
+          body: JSON.stringify(message.payload)
+        })
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}))
+          chrome.tabs.sendMessage(sender.tab.id, {
+            type: 'FEEDBACK_RESULT', success: false,
+            error: err.error || `Error ${response.status}`
+          })
+          return
+        }
+
+        chrome.tabs.sendMessage(sender.tab.id, { type: 'FEEDBACK_RESULT', success: true })
+
+      } catch (err) {
+        chrome.tabs.sendMessage(sender.tab.id, {
+          type: 'FEEDBACK_RESULT', success: false, error: err.message
+        })
+      }
+    })
+    return true
+  }
 })
 
 // Keep service worker alive

@@ -48,18 +48,18 @@ document.getElementById('saveConnection').addEventListener('click', async () => 
           'Content-Type': 'application/json',
           'x-extension-token': extToken,
         },
-        body: JSON.stringify({ prompt: 'test' })
+        body: JSON.stringify({ ping: true })
       })
 
       if (res.status === 401) {
         return showStatus(status, '❌ Token rejected — check your extension token.', false)
       }
       if (res.status === 429) {
-        // Rate limited but that means the proxy IS reachable and token is valid
         return showStatus(status, '✅ Connected! (Rate limited — wait 5s and try again)', true)
       }
-      if (res.status === 400 || res.ok) {
-        // 400 = proxy got our request but prompt was invalid — connection works
+
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.ok === true) {
         return showStatus(status, '✅ Connected successfully!', true)
       }
       return showStatus(status, `⚠️ Unexpected response: ${res.status}`, false)

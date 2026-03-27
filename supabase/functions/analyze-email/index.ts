@@ -162,6 +162,23 @@ serve(async (req) => {
     return json({ error: "Unauthorized" }, 401, corsHeaders)
   }
 
+  let parsedBody: unknown
+  try {
+    parsedBody = await req.json()
+  } catch {
+    return json({ error: "Invalid JSON" }, 400, corsHeaders)
+  }
+
+  // Cheap connectivity check from extension popup — no rate limit, no Anthropic call
+  if (
+    parsedBody !== null &&
+    typeof parsedBody === "object" &&
+    !Array.isArray(parsedBody) &&
+    (parsedBody as { ping?: boolean }).ping === true
+  ) {
+    return json({ ok: true }, 200, corsHeaders)
+  }
+
   // ── Rate limiting ─────────────────────────────────────────────────────────
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   const tokenKey = await hashToken(token)
@@ -191,8 +208,8 @@ serve(async (req) => {
   let emailData: EmailData
   let customPrompt: string
   try {
-    const body = await req.json()
-    emailData = body.emailData
+    const body = parsedBody as { emailData?: EmailData; customPrompt?: string }
+    emailData = body.emailData!
     customPrompt = body.customPrompt || ""
     if (!emailData || typeof emailData.subject !== "string" || typeof emailData.body !== "string") {
       throw new Error("missing emailData")

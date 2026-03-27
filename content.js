@@ -17,6 +17,50 @@ function checkForGiftCardFraud(email) {
   return GIFT_CARD_KEYWORDS.some(kw => combined.includes(kw));
 }
 
+// --- XSS-safe HTML / URLs (never interpolate raw strings into innerHTML) ---
+function escapeHtml(s) {
+  if (s == null || s === '') return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Returns https? URL string or null — never javascript:, data:, etc. */
+function safeHttpUrl(raw) {
+  if (raw == null || raw === '') return null;
+  const trimmed = String(raw).trim().slice(0, 2048);
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function buildLinkRowHtml(l) {
+  const display = escapeHtml(l.display);
+  const href = safeHttpUrl(l.fullUrl);
+  const mismatch = l.mismatch
+    ? ' <span style="color:#cc0000;font-weight:bold;">DESTINATION MISMATCH</span>'
+    : '';
+  if (href) {
+    const eh = escapeHtml(href);
+    return `<div class="oe-link ${l.mismatch ? 'oe-link-mismatch' : ''}">
+      <span class="oe-link-display">${display}</span>
+      <span class="oe-link-dest" style="display:block;word-break:break-all;font-size:0.82em;margin-top:3px;color:#555;">→ <a href="${eh}" rel="noopener noreferrer" target="_blank" style="color:#1a6eb5;text-decoration:none;" title="${eh}">${eh}</a>${mismatch}</span>
+    </div>`;
+  }
+  const fallback = escapeHtml(String(l.fullUrl || l.href || '').trim().slice(0, 2048));
+  return `<div class="oe-link ${l.mismatch ? 'oe-link-mismatch' : ''}">
+    <span class="oe-link-display">${display}</span>
+    <span class="oe-link-dest" style="display:block;word-break:break-all;font-size:0.82em;margin-top:3px;color:#555;">${fallback}${mismatch}</span>
+  </div>`;
+}
+
 // --- Sidebar Injection ---
 function createSidebar() {
   if (document.getElementById('oe-sidebar')) return;
@@ -228,8 +272,20 @@ function extractEmail() {
   const highRiskFiles = attachments.filter(a => HIGH_RISK_EXTENSIONS.some(ext => a.endsWith(ext)));
   const suspiciousFiles = attachments.filter(a => SUSPICIOUS_EXTENSIONS.some(ext => a.endsWith(ext)));
 
+  let recipient = '(No recipient found)';
+  try {
+    const toBtn = Array.from(pane.querySelectorAll('button[aria-label]'))
+      .find(b => (b.getAttribute('aria-label') || '').startsWith('To:'));
+    if (toBtn) recipient = toBtn.getAttribute('aria-label').replace(/^To:\s*/i, '').trim();
+  } catch(e) {}
+  if (recipient === '(No recipient found)') {
+    recipient = findTextIn(pane, [
+      '[data-testid="recipientName"]', '[class*="recipient" i]', '[class*="toLine" i]'
+    ]) || '(No recipient found)';
+  }
+
   const senderHasEmail = sender !== '(No sender found)' && sender.includes('@');
-  return { subject, sender, senderHasEmail, body: body.slice(0, 3000), links: links.slice(0, 20), attachments, hasHighRiskAttachment, hasSuspiciousAttachment, highRiskFiles, suspiciousFiles };
+  return { subject, sender, senderHasEmail, recipient, body: body.slice(0, 3000), links: links.slice(0, 20), attachments, hasHighRiskAttachment, hasSuspiciousAttachment, highRiskFiles, suspiciousFiles };
 }
 
 // --- Link Revelation ---
@@ -354,7 +410,7 @@ function setLoading() {
 }
 
 function showError(msg) {
-  document.getElementById('oe-body').innerHTML = `<div style="color:#c00;padding:12px;">⚠️ ${msg}</div>`;
+  document.getElementById('oe-body').innerHTML = `<div style="color:#c00;padding:12px;">⚠️ ${escapeHtml(msg)}</div>`;
   document.getElementById('oe-analyze-btn').style.display = 'block';
 }
 
@@ -372,17 +428,17 @@ function showResult(result, email) {
     <div class="oe-finding">
       <div class="oe-finding-header">
         <span class="oe-finding-icon">🚩</span>
-        <span class="oe-finding-flag">${f.flag}</span>
+        <span class="oe-finding-flag">${escapeHtml(f.flag)}</span>
         <span class="oe-finding-toggle">▼</span>
       </div>
       <div class="oe-finding-body">
         <div class="oe-finding-section">
           <div class="oe-finding-label">What's happening</div>
-          <div class="oe-finding-text">${f.explanation}</div>
+          <div class="oe-finding-text">${escapeHtml(f.explanation)}</div>
         </div>
         <div class="oe-finding-section oe-tip">
           <div class="oe-finding-label">💡 How to spot this yourself</div>
-          <div class="oe-finding-text">${f.howToSpotIt}</div>
+          <div class="oe-finding-text">${escapeHtml(f.howToSpotIt)}</div>
         </div>
       </div>
     </div>
@@ -396,21 +452,21 @@ function showResult(result, email) {
   document.getElementById('oe-body').innerHTML = `
     <div class="oe-verdict ${verdictClass}">
       <span class="oe-verdict-icon">${verdictIcon}</span>
-      <span class="oe-verdict-label">${result.verdict}</span>
+      <span class="oe-verdict-label">${escapeHtml(result.verdict)}</span>
     </div>
     <div class="oe-scores">
       <div class="oe-score">
         <span class="oe-score-label">Phishing Risk</span>
-        <span class="oe-score-val">${result.phishing_score}/100</span>
+        <span class="oe-score-val">${escapeHtml(result.phishing_score)}/100</span>
       </div>
       <div class="oe-score">
         <span class="oe-score-label">Spam Score</span>
-        <span class="oe-score-val">${result.spam_score}/100</span>
+        <span class="oe-score-val">${escapeHtml(result.spam_score)}/100</span>
       </div>
     </div>
     <div class="oe-section">
       <div class="oe-section-title">Summary</div>
-      <p>${result.summary}</p>
+      <p>${escapeHtml(result.summary)}</p>
     </div>
     ${showWarning ? `
     <div class="oe-warning-banner">
@@ -424,23 +480,39 @@ function showResult(result, email) {
     ${email.links && email.links.length > 0 ? `
     <div class="oe-section">
       <div class="oe-section-title">🔗 Links in this email (${email.links.length})</div>
-      ${email.links.map(l => `
-        <div class="oe-link ${l.mismatch ? 'oe-link-mismatch' : ''}">
-          <span class="oe-link-display">${l.display}</span>
-          <span class="oe-link-dest" style="display:block;word-break:break-all;font-size:0.82em;margin-top:3px;color:#555;">? <a href="${l.fullUrl || l.href}" style="color:#1a6eb5;text-decoration:none;" title="${l.fullUrl || l.href}">${l.fullUrl || l.href}</a>${l.mismatch ? ' <span style="color:#cc0000;font-weight:bold;">? DESTINATION MISMATCH</span>' : ''}</span>
-        </div>`).join('')}
+      ${email.links.map(l => buildLinkRowHtml(l)).join('')}
     </div>` : ''}
     ${result.lesson ? `
     <div class="oe-lesson">
       <div class="oe-lesson-title">📚 Remember for next time</div>
-      <div class="oe-lesson-text">${result.lesson}</div>
+      <div class="oe-lesson-text">${escapeHtml(result.lesson)}</div>
     </div>` : ''}
 
     <div class="oe-section">
       <div class="oe-section-title">✅ Suggested Action</div>
-      <p>${result.suggested_action}</p>
+      <p>${escapeHtml(result.suggested_action)}</p>
+    </div>
+
+    <div class="oe-feedback-section" id="oe-feedback-section">
+      <div class="oe-feedback-title">Was this analysis accurate?</div>
+      <div class="oe-feedback-buttons">
+        <button class="oe-feedback-btn oe-fb-false-positive" id="oe-fb-fp">
+          👎 False Positive
+        </button>
+        <button class="oe-feedback-btn oe-fb-missed-threat" id="oe-fb-mt">
+          🚨 Missed Threat
+        </button>
+      </div>
     </div>
   `;
+
+  window._oe_lastResult = result;
+
+  const fpBtn = document.getElementById('oe-fb-fp');
+  const mtBtn = document.getElementById('oe-fb-mt');
+
+  fpBtn.addEventListener('click', () => showFeedbackForm('false_positive', result, email));
+  mtBtn.addEventListener('click', () => showFeedbackForm('missed_threat', result, email));
 
   const btn = document.getElementById('oe-analyze-btn');
   btn.style.display = 'block';
@@ -448,10 +520,87 @@ function showResult(result, email) {
   btn.disabled = false;
 }
 
+function showFeedbackForm(feedbackType, result, email) {
+  const section = document.getElementById('oe-feedback-section');
+  const label = feedbackType === 'false_positive'
+    ? 'This email was flagged but is actually safe'
+    : 'This email is spam or phishing but was not caught';
+
+  section.innerHTML = `
+    <div class="oe-feedback-title">${label}</div>
+    <textarea id="oe-fb-comment" class="oe-feedback-comment"
+      placeholder="Optional: tell us more about why this was incorrect..."
+      maxlength="500" rows="3"></textarea>
+    <div class="oe-feedback-actions">
+      <button class="oe-feedback-btn oe-fb-submit" id="oe-fb-submit">Send Report</button>
+      <button class="oe-feedback-btn oe-fb-cancel" id="oe-fb-cancel">Cancel</button>
+    </div>
+  `;
+
+  document.getElementById('oe-fb-submit').addEventListener('click', () => {
+    const comment = (document.getElementById('oe-fb-comment').value || '').trim();
+    submitFeedback(feedbackType, result, email, comment);
+  });
+
+  document.getElementById('oe-fb-cancel').addEventListener('click', () => {
+    resetFeedbackSection();
+  });
+}
+
+function submitFeedback(feedbackType, result, email, comment) {
+  const section = document.getElementById('oe-feedback-section');
+  section.innerHTML = `
+    <div class="oe-feedback-title" style="text-align:center;">
+      <div class="oe-spinner" style="margin:0 auto 6px;"></div>
+      Sending report...
+    </div>
+  `;
+
+  try {
+    chrome.runtime.sendMessage({
+      type: 'SUBMIT_FEEDBACK',
+      payload: {
+        feedbackType,
+        originalVerdict: result.verdict,
+        originalPhishingScore: result.phishing_score,
+        originalSpamScore: result.spam_score,
+        emailSubject: (email.subject || '').slice(0, 200),
+        emailSender: (email.sender || '').slice(0, 200),
+        emailRecipient: (email.recipient || '').slice(0, 200),
+        userComment: comment
+      }
+    });
+  } catch(e) {
+    section.innerHTML = `<div class="oe-feedback-title oe-feedback-error">Failed to send. Please try again.</div>`;
+  }
+}
+
+function resetFeedbackSection() {
+  const section = document.getElementById('oe-feedback-section');
+  if (!section) return;
+  section.innerHTML = `
+    <div class="oe-feedback-title">Was this analysis accurate?</div>
+    <div class="oe-feedback-buttons">
+      <button class="oe-feedback-btn oe-fb-false-positive" id="oe-fb-fp">
+        👎 False Positive
+      </button>
+      <button class="oe-feedback-btn oe-fb-missed-threat" id="oe-fb-mt">
+        🚨 Missed Threat
+      </button>
+    </div>
+  `;
+  const result = window._oe_lastResult || {};
+  const email = window._oe_email || {};
+  document.getElementById('oe-fb-fp').addEventListener('click', () => showFeedbackForm('false_positive', result, email));
+  document.getElementById('oe-fb-mt').addEventListener('click', () => showFeedbackForm('missed_threat', result, email));
+}
+
 function showEmailReady(subject) {
+  const subj = String(subject || '');
+  const short = subj.length > 60 ? subj.slice(0, 60) + '...' : subj;
   document.getElementById('oe-body').innerHTML = `
     <div class="oe-email-ready">
-      <p>📨 <strong>${subject.slice(0, 60)}${subject.length > 60 ? '...' : ''}</strong></p>
+      <p>📨 <strong>${escapeHtml(short)}</strong></p>
       <p>Click Analyze to check this email for threats.</p>
     </div>`;
   document.getElementById('oe-analyze-btn').style.display = 'block';
@@ -497,13 +646,13 @@ function checkForEmailChange() {
           const warn = document.createElement('div');
           warn.id = 'oe-attach-warning';
           warn.style.cssText = 'background:#cc0000;color:white;padding:10px 12px;border-radius:6px;margin-bottom:8px;font-size:12px;font-weight:bold;line-height:1.5;';
-          warn.innerHTML = '⚠️ HIGH RISK ATTACHMENT: ' + highRisk.join(', ') + '<br>Do NOT open. Report to IT security immediately.';
+          warn.innerHTML = '⚠️ HIGH RISK ATTACHMENT: ' + escapeHtml(highRisk.join(', ')) + '<br>Do NOT open. Report to IT security immediately.';
           bodyEl.insertBefore(warn, bodyEl.firstChild);
         } else if (suspicious.length > 0) {
           const warn = document.createElement('div');
           warn.id = 'oe-attach-warning';
           warn.style.cssText = 'background:#b45309;color:white;padding:10px 12px;border-radius:6px;margin-bottom:8px;font-size:12px;font-weight:bold;line-height:1.5;';
-          warn.innerHTML = '⚠️ SUSPICIOUS ATTACHMENT: ' + suspicious.join(', ') + '<br>Verify with sender before opening.';
+          warn.innerHTML = '⚠️ SUSPICIOUS ATTACHMENT: ' + escapeHtml(suspicious.join(', ')) + '<br>Verify with sender before opening.';
           bodyEl.insertBefore(warn, bodyEl.firstChild);
         }
       }, 1000);
@@ -536,6 +685,22 @@ chrome.runtime.onMessage.addListener((message) => {
     if (message.error) { showError('Analysis failed: ' + message.error); return; }
     if (!message.result) { showError('No result received. Please try again.'); return; }
     showResult(message.result, window._oe_email || {});
+  }
+
+  if (message.type === 'FEEDBACK_RESULT') {
+    const section = document.getElementById('oe-feedback-section');
+    if (!section) return;
+    if (message.success) {
+      section.innerHTML = `<div class="oe-feedback-title oe-feedback-success">✅ Thank you! Your report has been submitted for review.</div>`;
+    } else {
+      section.innerHTML = `
+        <div class="oe-feedback-title oe-feedback-error">⚠️ ${escapeHtml(message.error || 'Failed to send report.')}</div>
+        <div class="oe-feedback-actions">
+          <button class="oe-feedback-btn oe-fb-cancel" id="oe-fb-retry">Try Again</button>
+        </div>
+      `;
+      document.getElementById('oe-fb-retry').addEventListener('click', () => resetFeedbackSection());
+    }
   }
 });
 
