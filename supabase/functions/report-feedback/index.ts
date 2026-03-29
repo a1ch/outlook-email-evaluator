@@ -34,7 +34,11 @@ serve(async (req) => {
     return json({ error: "Method not allowed" }, 405, corsHeaders)
   }
 
-  const token = req.headers.get("x-extension-token") ?? ""
+  let rawBody: unknown
+  try { rawBody = await req.json() } catch { rawBody = null }
+  const headerToken = req.headers.get("x-extension-token") ?? ""
+  const bodyToken = (rawBody as Record<string, unknown>)?.token as string ?? ""
+  const token = headerToken || bodyToken
   if (!token || token !== EXTENSION_TOKEN) {
     return json({ error: "Unauthorized" }, 401, corsHeaders)
   }
@@ -49,7 +53,7 @@ serve(async (req) => {
   let userComment: string | null
 
   try {
-    const body = await req.json()
+    const body = rawBody as Record<string, unknown>
     feedbackType = body.feedbackType
     originalVerdict = typeof body.originalVerdict === "string"
       ? body.originalVerdict.slice(0, MAX_VERDICT_LEN)
