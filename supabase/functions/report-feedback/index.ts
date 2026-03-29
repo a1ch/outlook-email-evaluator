@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const EXTENSION_TOKEN      = Deno.env.get("EXTENSION_TOKEN")!
@@ -24,7 +24,7 @@ const FEEDBACK_RATE_MAX = 10
 
 serve(async (req) => {
   const origin = req.headers.get("origin") ?? ""
-  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : "*"
   const corsHeaders = { ...CORS_HEADERS, "Access-Control-Allow-Origin": allowOrigin }
 
   if (req.method === "OPTIONS") {
