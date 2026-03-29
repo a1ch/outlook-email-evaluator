@@ -42,6 +42,7 @@ interface EmailData {
   suspiciousFiles: string[]
   isOutlookExternal: boolean
   clientTimestamp: string
+  clientTimezone?: string
 }
 
 // ── Trusted Microsoft system senders ─────────────────────────────────────────
@@ -76,7 +77,10 @@ function isTrustedMicrosoftSender(sender: string): boolean {
 function buildPrompt(e: EmailData, customPrompt: string, tenantDomain: string): string {
   const now = new Date()
   const utcString = now.toUTCString()
-  const localString = now.toLocaleString("en-US", { timeZone: "America/Edmonton", timeZoneName: "short" })
+  const tz = e.clientTimezone || "America/Edmonton"
+  let localString = ""
+  try { localString = now.toLocaleString("en-US", { timeZone: tz, timeZoneName: "short" }) }
+  catch { localString = now.toLocaleString("en-US", { timeZone: "America/Edmonton", timeZoneName: "short" }) }
 
   const orgContext = tenantDomain
     ? `Recipient organization primary domain (from extension settings): ${tenantDomain}`
@@ -119,7 +123,7 @@ CRITICAL RULES for this email:
   return `You are a cybersecurity educator helping everyday office workers learn to identify email threats. Analyze the email below and respond ONLY with a JSON object - no markdown, no text outside the JSON.
 
 IMPORTANT CONTEXT:
-- Current date/time: ${utcString} (UTC) / ${localString} (Mountain Time). Do not flag dates as suspicious if they fall within the current day across timezones.
+- Current date/time: ${utcString} (UTC) / ${localString} (${tz}). Do not flag dates as suspicious if they fall within the current day across timezones.
 - ${orgContext}
 - Sender: ${e.sender}
 - Outlook external org warning present: ${externalNote}
