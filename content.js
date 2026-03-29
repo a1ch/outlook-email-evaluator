@@ -103,6 +103,8 @@ function createSidebar() {
 function decodeWrappedUrl(href) {
   if (!href) return href;
   try {
+    // Unescape HTML entities Outlook may inject into href attributes (e.g. &amp; -> &)
+    href = href.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
     // Microsoft SafeLinks: safelinks.protection.outlook.com?url=...
     if (href.includes('safelinks.protection.outlook.com')) {
       const u = new URL(href);
