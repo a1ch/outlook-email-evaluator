@@ -10,6 +10,7 @@ const ALLOWED_ORIGINS = [
   "https://outlook.office.com",
   "https://outlook.office365.com",
   "https://outlook.cloud.microsoft",
+  "https://a1ch.github.io",
 ]
 
 const CORS_HEADERS = {
@@ -195,7 +196,7 @@ Respond with this EXACT JSON structure:
 // ── Main handler ──────────────────────────────────────────────────────────────
 serve(async (req) => {
   const origin = req.headers.get("origin") ?? ""
-  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : "*"
   const corsHeaders = { ...CORS_HEADERS, "Access-Control-Allow-Origin": allowOrigin }
 
   if (req.method === "OPTIONS") {
