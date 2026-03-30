@@ -17,6 +17,30 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, x-extension-token",
 }
 
+// ── Detection rules (server-side only) ──────────────────────────────────────
+const GIFT_CARD_KEYWORDS = [
+  'gift card', 'gift cards', 'itunes card', 'google play card', 'amazon gift card',
+  'steam card', 'ebay gift card', 'visa gift card', 'buy gift cards', 'purchase gift cards',
+  'get gift cards', 'send gift cards', 'gift card number', 'gift card code',
+  'scratch the card', 'scratch card', 'card balance', 'redeem the card',
+  'send me the codes', 'send the codes', 'send the numbers'
+]
+
+const HIGH_RISK_EXTENSIONS = ['.htm','.html','.js','.vbs','.vbe','.ps1','.wsf','.wsh','.jar','.hta']
+const SUSPICIOUS_EXTENSIONS = ['.exe','.msi','.bat','.cmd','.iso','.img','.zip','.rar','.7z','.docm','.xlsm','.pptm','.lnk']
+
+function checkForGiftCardFraud(subject: string, body: string): boolean {
+  const combined = ((subject || '') + ' ' + (body || '')).toLowerCase()
+  return GIFT_CARD_KEYWORDS.some(kw => combined.includes(kw))
+}
+
+function classifyAttachments(attachments: string[]): { highRisk: string[], suspicious: string[], hasHighRisk: boolean, hasSuspicious: boolean } {
+  const names = (attachments || []).map(a => a.toLowerCase())
+  const highRisk = names.filter(n => HIGH_RISK_EXTENSIONS.some(e => n.endsWith(e)))
+  const suspicious = names.filter(n => !highRisk.includes(n) && SUSPICIOUS_EXTENSIONS.some(e => n.endsWith(e)))
+  return { highRisk, suspicious, hasHighRisk: highRisk.length > 0, hasSuspicious: suspicious.length > 0 }
+}
+
 const RATE_LIMIT_WINDOW_MS = 5000
 const MAX_BODY_LENGTH = 3000
 const MAX_TENANT_DOMAIN_LEN = 253
@@ -273,8 +297,26 @@ serve(async (req) => {
     emailData.sender = (emailData.sender || "(No sender found)").slice(0, 300)
     emailData.links = (emailData.links || []).slice(0, 20)
     emailData.attachments = (emailData.attachments || []).slice(0, 20)
+
+    // ── Server-side detection (replaces client-side logic) ─────────────────
+    const attach = classifyAttachments(emailData.attachments)
+    emailData.hasHighRiskAttachment = attach.hasHighRisk
+    emailData.hasSuspiciousAttachment = attach.hasSuspicious
+    emailData.highRiskFiles = attach.highRisk
+    emailData.suspiciousFiles = attach.suspicious
   } catch {
     return json({ error: "Invalid request body" }, 400, corsHeaders)
+  }
+
+  // ── Gift card pre-check (bypass Claude entirely) ───────────────────────────
+  if (checkForGiftCardFraud(emailData.subject, emailData.body)) {
+    return json({ result: {
+      verdict: 'PHISHING', phishing_score: 99, spam_score: 10,
+      summary: 'This email contains a request for gift cards. This is one of the most common fraud tactics used against businesses — it is almost certainly a scam.',
+      findings: [{ flag: 'Gift card request detected', explanation: 'Fraudsters impersonate managers, executives, or colleagues and ask employees to buy gift cards urgently. No legitimate business request will ever ask for gift card payments.', howToSpotIt: 'If ANY email asks you to buy gift cards and send the codes — stop immediately. Call that person directly on a known phone number to verify.' }],
+      lesson: 'No legitimate business transaction is ever completed with gift cards. If someone asks you to buy gift cards and send the codes, it is a scam — 100% of the time.',
+      suggested_action: 'Do NOT purchase any gift cards. Report this email to your IT security team and your manager immediately.'
+    }}, 200, corsHeaders)
   }
 
   const prompt = buildPrompt(emailData, customPrompt, tenantDomain)
