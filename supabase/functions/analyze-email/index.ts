@@ -491,14 +491,6 @@ function json(body: unknown, status: number, headers: Record<string, string>) {
   })
 }
 
-async function hashToken(token: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(token)
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("")
-}
-
 function sanitizeTenantDomain(raw: unknown): string {
   if (typeof raw !== "string") return ""
   let s = raw.trim().toLowerCase().slice(0, MAX_TENANT_DOMAIN_LEN)
