@@ -231,6 +231,7 @@ ENVIRONMENT-SPECIFIC RULES (CRITICAL - follow these exactly):
 - Known trusted external vendors/services for this org: sharegate.com, sharegate-software.com (SharePoint migration/management tool). Emails from Sharegate are expected and legitimate.
 - If sender is '(No sender found)' this is a known technical extraction limitation of Outlook's web rendering - this is NOT a red flag and MUST NOT be listed as a finding. Do not mention missing sender info at all.
 - Do not flag the absence of a visible sender email address as suspicious if the email content is otherwise legitimate business communication.
+- The body text is read from Outlook on the web: OTPs, verification codes, magic links, or JWT-like strings may be masked, truncated, or hidden by the client — do not treat missing codes as proof an email is benign, and do not assume the body is complete.
 
 KEY RULES:
 1. NEVER give any email a free pass based on sender domain alone - even internal senders can be compromised.
@@ -310,7 +311,11 @@ serve(async (req) => {
     return json({ error: "Invalid JSON" }, 400, corsHeaders)
   }
   const headerToken = req.headers.get("x-extension-token") ?? ""
-  const bodyToken = (parsedBody as Record<string, unknown>)?.token as string ?? ""
+  const raw = parsedBody as Record<string, unknown>
+  // Use `oeAuth` in JSON body — some proxies flag or strip a top-level `token` field; legacy `token` still accepted.
+  const bodyToken =
+    (typeof raw?.oeAuth === "string" ? raw.oeAuth : "") ||
+    (typeof raw?.token === "string" ? raw.token : "")
   const token = headerToken || bodyToken
   if (!token || token !== EXTENSION_TOKEN) {
     return json({ error: "Unauthorized" }, 401, corsHeaders)

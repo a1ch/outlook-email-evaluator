@@ -4,9 +4,13 @@
   "description": "Unit tests for Outlook Email Evaluator Chrome extension",
   "scripts": {
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "deploy:analyze-email": "supabase functions deploy analyze-email",
+    "deploy:report-feedback": "supabase functions deploy report-feedback",
+    "deploy:functions": "supabase functions deploy analyze-email && supabase functions deploy report-feedback"
   },
   "devDependencies": {
-    "jest": "^29.0.0"
+    "jest": "^29.0.0",
+    "supabase": "^2.84.5"
   }
 }

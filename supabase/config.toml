@@ -354,6 +354,14 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# Chrome extension calls these with x-extension-token only (no Supabase JWT).
+# If verify_jwt stays true, the gateway returns 401 before Deno runs — looks like "wrong key" but it is JWT.
+[functions.analyze-email]
+verify_jwt = false
+
+[functions.report-feedback]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

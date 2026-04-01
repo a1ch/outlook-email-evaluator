@@ -48,6 +48,69 @@ function buildLinkRowHtml(l) {
   </div>`;
 }
 
+/** One-line fix + label for common error strings from the background / network. */
+function getErrorUi(fullMessage) {
+  const m = String(fullMessage || '')
+  if (/No proxy URL set/i.test(m)) {
+    return { label: 'Setup needed', fix: 'Click the extension icon → Connection → paste your Supabase function URL (…/functions/v1/analyze-email).' }
+  }
+  if (/Invalid proxy URL/i.test(m)) {
+    return { label: 'Invalid URL', fix: 'Use exactly: https://YOUR_PROJECT.supabase.co/functions/v1/analyze-email' }
+  }
+  if (/No extension token set|extension token/i.test(m)) {
+    return { label: 'Setup needed', fix: 'Click the extension icon → Connection → paste your Extension Token (same as Supabase EXTENSION_TOKEN).' }
+  }
+  if (/wait 5 seconds|Rate limit|429/i.test(m)) {
+    return { label: 'Rate limited', fix: 'Wait about 5 seconds, then click Analyze again.' }
+  }
+  if (/Timed out|timeout/i.test(m)) {
+    return { label: 'Timed out', fix: 'Try Analyze again. If it keeps happening, reload this Outlook tab.' }
+  }
+  if (/Failed to fetch|NetworkError|network|not reachable|ERR_INTERNET|ERR_NETWORK|offline/i.test(m)) {
+    return { label: 'Offline or blocked', fix: 'Check your internet and VPN. Ensure Outlook and *.supabase.co are allowed.' }
+  }
+  if (/Analysis failed:\s*Proxy error 401|401|Unauthorized|Token rejected/i.test(m)) {
+    return { label: 'Not authorized', fix: 'Open the extension → Connection → fix Extension Token to match Supabase secrets.' }
+  }
+  if (/Proxy error|502|503|504/i.test(m)) {
+    return { label: 'Server issue', fix: 'The analysis service may be busy. Try again in a moment.' }
+  }
+  if (/Extension was reloaded|refresh the page/i.test(m)) {
+    return { label: 'Extension restarted', fix: 'Refresh this Outlook page (F5), then open the email and analyze again.' }
+  }
+  if (/Extension not configured|Invalid proxy URL in settings/i.test(m)) {
+    return { label: 'Setup needed', fix: 'Click the extension icon → Connection → set function URL and Extension Token, then try again.' }
+  }
+  if (/Request failed:/i.test(m)) {
+    return { label: 'Could not reach server', fix: 'Check internet / VPN, then try again. If it persists, reload this tab.' }
+  }
+  return { label: 'Something went wrong', fix: 'Try again. If it repeats, reload the page and check Connection settings.' }
+}
+
+/** Short notes for odd emails so users know the app isn’t broken. */
+function getEmailContextHints(email) {
+  const subject = String(email.subject || '')
+  const body = String(email.body || '')
+  const combined = (subject + ' ' + body).toLowerCase()
+  const hints = []
+  const bodyTrim = body.trim()
+  const bodyLen = bodyTrim.length
+
+  if (/encrypted|can't display|cannot display this message|irm |rights management|sensitivity label|message is protected|unable to display|open in owa only/i.test(combined)) {
+    hints.push('This message may be encrypted or rights-protected — only visible text can be analyzed.')
+  }
+  if (/invitation|calendar|meeting request|teams meeting|zoom meeting|webex|\.ics|accept(ed)? this meeting|decline this meeting|tentative/i.test(combined)) {
+    hints.push('Calendar or meeting invites often have little body text — analysis uses only what Outlook shows here.')
+  }
+  if (bodyLen > 0 && bodyLen < 40 && !/invitation|calendar|meeting/i.test(combined)) {
+    hints.push('Very little text was extracted — results may be less certain. Longer threads work best.')
+  }
+  if ((!email.links || email.links.length === 0) && bodyLen > 15) {
+    hints.push('No links found in the visible body — many safe emails have no links.')
+  }
+  return hints
+}
+
 // --- Sidebar Injection ---
 function createSidebar() {
   if (document.getElementById('oe-sidebar')) return;
@@ -65,6 +128,8 @@ function createSidebar() {
       </div>
       <div id="oe-body"><p>Select or open an email to analyze it.</p></div>
       <button id="oe-analyze-btn">🔍 Analyze Email</button>
+      <button type="button" id="oe-wake-btn">☀️ Wake Up Extension</button>
+      <p class="oe-wake-hint" id="oe-wake-hint">If analysis stops working after sleep, use this before analyzing.</p>
     </div>
   `;
   document.body.appendChild(sidebar);
@@ -93,6 +158,22 @@ function createSidebar() {
   document.getElementById('oe-analyze-btn').addEventListener('click', () => {
     try { chrome.runtime.sendMessage({ type: 'PING' }); } catch(e) {}
     setTimeout(analyzeCurrentEmail, 100);
+  });
+
+  // Wake up extension button
+  document.getElementById('oe-wake-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('oe-wake-btn');
+    btn.textContent = '⏳ Waking up...';
+    btn.disabled = true;
+    try { await chrome.runtime.sendMessage({ type: 'PING' }); } catch(e) {}
+    try {
+      const tabs = await chrome.tabs.query({ url: '*://outlook.cloud.microsoft/*' });
+      for (const tab of tabs) {
+        try { await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] }); } catch(e) {}
+      }
+    } catch(e) {}
+    btn.textContent = '✅ Done! Refresh your email view.';
+    setTimeout(() => { btn.textContent = '☀️ Wake Up Extension'; btn.disabled = false; }, 3000);
   });
 
   // Event delegation for finding card toggles
@@ -333,6 +414,7 @@ function revealLinks() {
 // --- Analysis ---
 async function analyzeCurrentEmail() {
   const email = extractEmail();
+  window._oe_emailHints = getEmailContextHints(email);
   setLoading();
   let isOutlookExternal = false;
   try {
@@ -406,8 +488,12 @@ function setLoading() {
           </div>
         </div>
       </div>
+      <p class="oe-loading-hint">Connecting to your analysis server…</p>
     </div>`;
   document.getElementById('oe-analyze-btn').style.display = 'none';
+  document.getElementById('oe-wake-btn').style.display = 'none';
+  const wakeHint = document.getElementById('oe-wake-hint');
+  if (wakeHint) wakeHint.style.display = 'none';
   const _steps = [
     { id: 'oe-step-read',     delay: 0,    duration: 1400 },
     { id: 'oe-step-think',    delay: 1200, duration: 1800 },
@@ -426,8 +512,19 @@ function setLoading() {
 }
 
 function showError(msg) {
-  document.getElementById('oe-body').innerHTML = `<div style="color:#c00;padding:12px;">⚠️ ${escapeHtml(msg)}</div>`;
+  const raw = String(msg || '')
+  const ui = getErrorUi(raw)
+  const detail = escapeHtml(raw.replace(/^Analysis failed:\s*/i, '').trim())
+  document.getElementById('oe-body').innerHTML = `
+    <div class="oe-error-card">
+      <div class="oe-error-badge">${escapeHtml(ui.label)}</div>
+      <div class="oe-error-detail">⚠️ ${detail}</div>
+      <div class="oe-error-fix"><strong>What to do:</strong> ${escapeHtml(ui.fix)}</div>
+    </div>`;
   document.getElementById('oe-analyze-btn').style.display = 'block';
+  document.getElementById('oe-wake-btn').style.display = 'block';
+  const wakeHintErr = document.getElementById('oe-wake-hint');
+  if (wakeHintErr) wakeHintErr.style.display = 'block';
 }
 
 function showResult(result, email) {
@@ -465,7 +562,13 @@ function showResult(result, email) {
     'secure link','reset your password','confirm your','your account','click here to'].some(kw => combined.includes(kw));
   const showWarning = isLoginOrCode || result.verdict === 'PHISHING' || result.phishing_score >= 60;
 
+  const hints = window._oe_emailHints || []
+  const hintsHtml = hints.length
+    ? `<div class="oe-context-hints">${hints.map(h => `<div class="oe-context-hint">ℹ️ ${escapeHtml(h)}</div>`).join('')}</div>`
+    : ''
+
   document.getElementById('oe-body').innerHTML = `
+    ${hintsHtml}
     <div class="oe-verdict ${verdictClass}">
       <span class="oe-verdict-icon">${verdictIcon}</span>
       <span class="oe-verdict-label">${escapeHtml(result.verdict)}</span>
@@ -534,6 +637,9 @@ function showResult(result, email) {
   btn.style.display = 'block';
   btn.textContent = 'Analyze Another';
   btn.disabled = false;
+  document.getElementById('oe-wake-btn').style.display = 'block';
+  const wakeHintRes = document.getElementById('oe-wake-hint');
+  if (wakeHintRes) wakeHintRes.style.display = 'block';
 }
 
 function showFeedbackForm(feedbackType, result, email) {
@@ -621,6 +727,9 @@ function showEmailReady(subject) {
     </div>`;
   document.getElementById('oe-analyze-btn').style.display = 'block';
   document.getElementById('oe-analyze-btn').textContent = 'Analyze Email';
+  document.getElementById('oe-wake-btn').style.display = 'block';
+  const wakeHintReady = document.getElementById('oe-wake-hint');
+  if (wakeHintReady) wakeHintReady.style.display = 'block';
 }
 
 // --- Email Change Detection ---
@@ -698,7 +807,12 @@ function init() {
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'ANALYSIS_DONE') {
     clearTimeout(window._oe_timeout);
-    if (message.error) { showError('Analysis failed: ' + message.error); return; }
+    if (message.error) {
+      const err = String(message.error)
+      const combined = err.startsWith('Analysis failed:') ? err : ('Analysis failed: ' + err)
+      showError(combined)
+      return
+    }
     if (!message.result) { showError('No result received. Please try again.'); return; }
     showResult(message.result, window._oe_email || {});
   }
@@ -707,7 +821,18 @@ chrome.runtime.onMessage.addListener((message) => {
     const section = document.getElementById('oe-feedback-section');
     if (!section) return;
     if (message.success) {
-      section.innerHTML = `<div class="oe-feedback-title oe-feedback-success">✅ Thank you! Your report has been submitted for review.</div>`;
+      section.innerHTML = `
+        <div class="oe-feedback-success-block">
+          <div class="oe-feedback-title oe-feedback-success">✅ Report received</div>
+          <p class="oe-feedback-subtle">Thanks — your feedback helps improve detection for everyone.</p>
+          <button type="button" class="oe-feedback-btn oe-fb-thanks" id="oe-fb-thanks">Thanks</button>
+        </div>`;
+      const thanksBtn = document.getElementById('oe-fb-thanks');
+      if (thanksBtn) {
+        thanksBtn.addEventListener('click', () => {
+          section.innerHTML = `<div class="oe-feedback-dismissed" role="status">Got it — thanks for helping us improve.</div>`;
+        });
+      }
     } else {
       section.innerHTML = `
         <div class="oe-feedback-title oe-feedback-error">⚠️ ${escapeHtml(message.error || 'Failed to send report.')}</div>

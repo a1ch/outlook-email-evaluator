@@ -47,7 +47,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             'Content-Type': 'application/json',
             'x-extension-token': extToken,
           },
-          body: JSON.stringify({ emailData: message.emailData, customPrompt, tenantDomain, token: extToken })
+          body: JSON.stringify({ emailData: message.emailData, customPrompt, tenantDomain, oeAuth: extToken })
         })
 
         if (response.status === 429) {
@@ -118,7 +118,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             'Content-Type': 'application/json',
             'x-extension-token': extToken,
           },
-          body: JSON.stringify({ ...message.payload, token: extToken })
+            body: JSON.stringify({ ...message.payload, oeAuth: extToken })
         })
 
         if (!response.ok) {

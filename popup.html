@@ -87,36 +87,6 @@
     }
     button.save-btn:hover { background: #106ebe; }
 
-    button.wake-btn {
-      width: 100%;
-      padding: 8px;
-      background: #f0f0f0;
-      color: #333;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    button.wake-btn:hover { background: #e0e0e0; border-color: #aaa; }
-    button.wake-btn:active { background: #d0d0d0; }
-    button.wake-btn.waking {
-      background: #fff8e1;
-      border-color: #f5a623;
-      color: #a66800;
-    }
-    button.wake-btn.awake {
-      background: #e6f4ea;
-      border-color: #34a853;
-      color: #1e7e34;
-    }
-
     .show-toggle {
       background: none;
       color: #0078d4;
@@ -142,13 +112,6 @@
       border: none;
       border-top: 1px solid #e0e0e0;
       margin: 12px 0 8px;
-    }
-
-    .wake-label {
-      font-size: 11px;
-      color: #888;
-      text-align: center;
-      margin-top: 6px;
     }
 
     .how-to { font-size: 12px; color: #444; line-height: 1.8; }
@@ -197,13 +160,6 @@
 
     <button class="save-btn" id="saveConnection">Save &amp; Test Connection</button>
     <div class="status-msg" id="connectionStatus"></div>
-
-    <button class="wake-btn" id="wakeUpBtn">
-      <span id="wakeIcon">☀️</span>
-      <span id="wakeText">Wake Up Extension</span>
-    </button>
-    <p class="wake-label">Use this after your computer wakes from sleep</p>
-    <div class="status-msg" id="wakeStatus"></div>
   </div>
 
   <!-- Settings Tab -->
@@ -238,7 +194,7 @@
     <br>
     <p class="hint">Rate limit: 1 analysis per 5 seconds.</p>
     <br>
-    <p class="hint">If the sidebar stops working after your computer sleeps, click <b>Wake Up Extension</b> on the Connection tab.</p>
+    <p class="hint">If the sidebar stops working after your computer sleeps, use <b>Wake Up Extension</b> in the Outlook sidebar (below <b>Analyze Email</b>).</p>
   </div>
 
   <script src="proxy-utils.js"></script>
