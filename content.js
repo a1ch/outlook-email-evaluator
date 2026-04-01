@@ -1,4 +1,4 @@
-﻿// Outlook Email Evaluator - Content Script
+// Outlook Email Evaluator - Content Script
 let sidebar = null;
 let lastEmailId = null;
 let observer = null;
@@ -284,6 +284,12 @@ function extractEmail() {
   }
 
   const senderHasEmail = sender !== '(No sender found)' && sender.includes('@');
+  const HIGH_RISK_EXTS = ['.htm','.html','.js','.vbs','.vbe','.ps1','.wsf','.wsh','.jar','.hta'];
+  const SUSPICIOUS_EXTS = ['.exe','.msi','.bat','.cmd','.iso','.img','.zip','.rar','.7z','.docm','.xlsm','.pptm','.lnk'];
+  const highRiskFiles = attachments.filter(n => HIGH_RISK_EXTS.some(ext => n.endsWith(ext)));
+  const suspiciousFiles = attachments.filter(n => SUSPICIOUS_EXTS.some(ext => n.endsWith(ext)));
+  const hasHighRiskAttachment = highRiskFiles.length > 0;
+  const hasSuspiciousAttachment = suspiciousFiles.length > 0;
   return { subject, sender, senderHasEmail, recipient, body: body.slice(0, 3000), links: links.slice(0, 20), attachments, hasHighRiskAttachment, hasSuspiciousAttachment, highRiskFiles, suspiciousFiles };
 }
 // --- Link Revelation ---
@@ -376,11 +382,47 @@ async function analyzeCurrentEmail() {
 // --- UI States ---
 function setLoading() {
   document.getElementById('oe-body').innerHTML = `
-    <div id="oe-loading" style="text-align:center;padding:20px;color:#555;">
-      <div class="oe-spinner"></div>
-      <p>Analyzing email...</p>
+    <div id="oe-loading" style="padding:14px;">
+      <div class="oe-ai-steps">
+        <div class="oe-ai-step" id="oe-step-read">
+          <div class="oe-step-icon-wrap"><span class="oe-step-icon">&#128232;</span><span class="oe-step-check">&#10003;</span></div>
+          <div class="oe-step-info">
+            <div class="oe-step-title">Reading Email</div>
+            <div class="oe-step-bar"><div class="oe-step-fill"></div></div>
+          </div>
+        </div>
+        <div class="oe-ai-step" id="oe-step-think">
+          <div class="oe-step-icon-wrap"><span class="oe-step-icon">&#129504;</span><span class="oe-step-check">&#10003;</span></div>
+          <div class="oe-step-info">
+            <div class="oe-step-title">Thinking...</div>
+            <div class="oe-step-bar"><div class="oe-step-fill"></div></div>
+          </div>
+        </div>
+        <div class="oe-ai-step" id="oe-step-generate">
+          <div class="oe-step-icon-wrap"><span class="oe-step-icon">&#9997;</span><span class="oe-step-check">&#10003;</span></div>
+          <div class="oe-step-info">
+            <div class="oe-step-title">Generating Response</div>
+            <div class="oe-step-bar"><div class="oe-step-fill"></div></div>
+          </div>
+        </div>
+      </div>
     </div>`;
   document.getElementById('oe-analyze-btn').style.display = 'none';
+  const _steps = [
+    { id: 'oe-step-read',     delay: 0,    duration: 1400 },
+    { id: 'oe-step-think',    delay: 1200, duration: 1800 },
+    { id: 'oe-step-generate', delay: 2800, duration: 99999 },
+  ];
+  _steps.forEach(({ id, delay, duration }) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('oe-step-active');
+      setTimeout(() => {
+        if (duration < 99999) { el.classList.remove('oe-step-active'); el.classList.add('oe-step-done'); }
+      }, duration);
+    }, delay);
+  });
 }
 
 function showError(msg) {

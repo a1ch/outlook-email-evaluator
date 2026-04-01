@@ -5,7 +5,9 @@
   "description": "Evaluates emails in Outlook for spam and phishing using AI",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
     "https://outlook.office.com/*",

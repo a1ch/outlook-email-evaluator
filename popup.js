@@ -1,4 +1,4 @@
-﻿// ── Tabs ───────────────────────────────────────────────────────────────────────
+// ── Tabs ───────────────────────────────────────────────────────────────────────
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
@@ -53,7 +53,7 @@ document.getElementById('saveConnection').addEventListener('click', async () => 
           'Content-Type': 'application/json',
           'x-extension-token': extToken,
         },
-        body: JSON.stringify({ ping: true })
+        body: JSON.stringify({ ping: true, token: extToken })
       })
 
       if (res.status === 401) {
@@ -86,11 +86,85 @@ document.getElementById('saveSettings').addEventListener('click', () => {
   })
 })
 
+// ── Wake Up Extension ──────────────────────────────────────────────────────────
+document.getElementById('wakeUpBtn').addEventListener('click', async () => {
+  const btn      = document.getElementById('wakeUpBtn')
+  const icon     = document.getElementById('wakeIcon')
+  const text     = document.getElementById('wakeText')
+  const status   = document.getElementById('wakeStatus')
+
+  btn.classList.add('waking')
+  btn.disabled = true
+  icon.textContent = '⏳'
+  text.textContent = 'Waking up...'
+  status.className = 'status-msg'
+
+  try {
+    // 1. Ping the service worker to wake it up (sending any message forces it to start)
+    await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: 'PING' }, () => {
+        // Ignore chrome.runtime.lastError — the worker may have been dead, that's fine
+        void chrome.runtime.lastError
+        resolve()
+      })
+    })
+
+    // 2. Re-inject the content script into all matching Outlook tabs
+    const outlookPattern = '*://outlook.cloud.microsoft/*'
+    const tabs = await chrome.tabs.query({ url: outlookPattern })
+
+    let injected = 0
+    for (const tab of tabs) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        })
+        injected++
+      } catch {
+        // Tab may be restricted or already has the script — skip silently
+      }
+    }
+
+    // 3. Show result
+    btn.classList.remove('waking')
+    btn.classList.add('awake')
+    icon.textContent = '✅'
+
+    if (injected > 0) {
+      text.textContent = 'Extension awake!'
+      showStatus(status, `✅ Restarted on ${injected} Outlook tab${injected > 1 ? 's' : ''}. Refresh your email view.`, true)
+    } else if (tabs.length === 0) {
+      text.textContent = 'Extension awake!'
+      showStatus(status, '✅ Service worker restarted. Open Outlook in Chrome to use the analyzer.', true)
+    } else {
+      text.textContent = 'Extension awake!'
+      showStatus(status, '✅ Service worker restarted. Try refreshing your Outlook tab (Ctrl+Shift+R).', true)
+    }
+
+  } catch (err) {
+    btn.classList.remove('waking')
+    icon.textContent = '☀️'
+    text.textContent = 'Wake Up Extension'
+    btn.disabled = false
+    showStatus(status, `❌ Wake up failed: ${err.message}`, false)
+    return
+  }
+
+  // Reset button after 4 seconds
+  setTimeout(() => {
+    btn.classList.remove('awake')
+    btn.disabled = false
+    icon.textContent = '☀️'
+    text.textContent = 'Wake Up Extension'
+  }, 4000)
+})
+
 // ── Helper ─────────────────────────────────────────────────────────────────────
 function showStatus(el, msg, success) {
   el.textContent  = msg
   el.className    = 'status-msg ' + (success ? 'success' : 'error')
   if (success && !msg.includes('⏳')) {
-    setTimeout(() => { el.style.display = 'none' }, 4000)
+    setTimeout(() => { el.style.display = 'none' }, 5000)
   }
 }

@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!
@@ -70,10 +70,6 @@ interface EmailData {
 }
 
 // ── Trusted Microsoft system senders ─────────────────────────────────────────
-// These senders are legitimate Microsoft automated notification services.
-// They will always show as "external organization" in Outlook because Microsoft
-// sends them from their own tenant, not the recipient's tenant. This is EXPECTED
-// and NORMAL behaviour — it is NOT a sign of phishing.
 const TRUSTED_MICROSOFT_SENDERS = [
   "powerautomatenoreply@microsoft.com",
   "no-reply@microsoft.com",
@@ -95,6 +91,52 @@ function isTrustedMicrosoftSender(sender: string): boolean {
       s.includes("powerautomate") || s.includes("sharepoint") ||
       s.includes("teams") || s.includes("azure") || s.includes("notify")
     ))
+}
+
+// ── Trusted third-party SaaS senders ─────────────────────────────────────────
+const TRUSTED_SAAS_DOMAINS: Array<{ domain: string; name: string; linkDomains: string[] }> = [
+  { domain: "1password.ca",   name: "1Password",    linkDomains: ["1password.com", "1password.ca"] },
+  { domain: "1password.com",  name: "1Password",    linkDomains: ["1password.com", "1password.ca"] },
+  { domain: "github.com",     name: "GitHub",       linkDomains: ["github.com", "githubusercontent.com"] },
+  { domain: "gitlab.com",     name: "GitLab",       linkDomains: ["gitlab.com"] },
+  { domain: "atlassian.com",  name: "Atlassian",    linkDomains: ["atlassian.com", "atlassian.net"] },
+  { domain: "slack.com",      name: "Slack",        linkDomains: ["slack.com"] },
+  { domain: "zoom.us",        name: "Zoom",         linkDomains: ["zoom.us"] },
+  { domain: "docusign.com",   name: "DocuSign",     linkDomains: ["docusign.com", "docusign.net"] },
+  { domain: "dropbox.com",    name: "Dropbox",      linkDomains: ["dropbox.com"] },
+  { domain: "salesforce.com", name: "Salesforce",   linkDomains: ["salesforce.com", "force.com"] },
+  { domain: "hubspot.com",    name: "HubSpot",      linkDomains: ["hubspot.com", "hs-sites.com"] },
+  { domain: "lastpass.com",   name: "LastPass",     linkDomains: ["lastpass.com"] },
+  { domain: "okta.com",       name: "Okta",         linkDomains: ["okta.com"] },
+  { domain: "duo.com",        name: "Duo Security", linkDomains: ["duo.com"] },
+]
+
+function getTrustedSaasMatch(sender: string): { domain: string; name: string; linkDomains: string[] } | null {
+  const s = sender.toLowerCase()
+  return TRUSTED_SAAS_DOMAINS.find(entry =>
+    s.includes("@" + entry.domain) || s.includes("." + entry.domain + ">")
+  ) ?? null
+}
+
+// ── Extract sender domain from email address ──────────────────────────────────
+// Handles formats like: "Display Name <user@domain.com>", "user@domain.com"
+function extractSenderDomain(sender: string): string {
+  if (!sender) return ""
+  const s = sender.toLowerCase()
+  // Match email address in angle brackets first, then bare email
+  const match = s.match(/<[^>]*@([a-z0-9.-]+)>/) || s.match(/@([a-z0-9.-]+)/)
+  return match ? match[1] : ""
+}
+
+// ── Determine if sender is external based on domain comparison ────────────────
+// Returns: 'internal' | 'external' | 'unknown'
+function classifySenderDomain(sender: string, tenantDomain: string): 'internal' | 'external' | 'unknown' {
+  if (!tenantDomain) return 'unknown'
+  const senderDomain = extractSenderDomain(sender)
+  if (!senderDomain) return 'unknown'
+  // Internal if sender domain matches or is a subdomain of tenantDomain
+  if (senderDomain === tenantDomain || senderDomain.endsWith("." + tenantDomain)) return 'internal'
+  return 'external'
 }
 
 // ── Prompt builder (all analysis logic lives here, not in the extension) ─────
@@ -129,11 +171,26 @@ function buildPrompt(e: EmailData, customPrompt: string, tenantDomain: string): 
     ? e.links.map(l => ` - Display: "${l.display}" -> Real domain: ${l.href}${l.mismatch ? " WARNING: DOMAIN MISMATCH" : ""}`).join("\n")
     : " (No links found)"
 
-  const externalNote = e.isOutlookExternal
-    ? "YES - Microsoft has confirmed this is from an external organization."
-    : "NO - treat as internal unless you find an external email address in body/signature"
+  // ── Server-side external classification (more reliable than client-side banner) ──
+  const senderDomainClassification = classifySenderDomain(e.sender, tenantDomain)
+  const senderDomain = extractSenderDomain(e.sender)
 
-  // Build a trust note that gets injected into the prompt when the sender is a known Microsoft system address
+  let externalNote: string
+  if (senderDomainClassification === 'internal') {
+    // Domain matches tenant — definitely internal, override Outlook's banner if needed
+    externalNote = `NO - sender domain "${senderDomain}" matches your organization domain "${tenantDomain}". Treat as INTERNAL.`
+  } else if (senderDomainClassification === 'external') {
+    // Domain does NOT match tenant — definitely external
+    externalNote = `YES - sender domain "${senderDomain}" does NOT match your organization domain "${tenantDomain}". This is an EXTERNAL sender.`
+  } else if (e.isOutlookExternal) {
+    // No tenant domain configured but Outlook flagged it
+    externalNote = "YES - Microsoft Outlook has confirmed this is from an external organization (no tenant domain configured to verify further)."
+  } else {
+    // No tenant domain and no Outlook flag
+    externalNote = "UNKNOWN - no organization domain configured in settings and Outlook has not flagged this as external. Do not assume external based on display name alone."
+  }
+
+  // Trust note for known Microsoft system senders
   const microsoftTrustNote = isTrustedMicrosoftSender(e.sender)
     ? `TRUSTED MICROSOFT SYSTEM EMAIL: The sender "${e.sender}" is a known legitimate Microsoft automated notification service (Power Automate, SharePoint, Teams, Azure, etc.).
 CRITICAL RULES for this email:
@@ -144,17 +201,30 @@ CRITICAL RULES for this email:
 5. If the email content matches expected Microsoft system notification patterns (flow alerts, subscription changes, service updates, security codes for services the user likely uses), lean toward SAFE.`
     : ""
 
+  // Trust note for known third-party SaaS senders
+  const saasMatch = getTrustedSaasMatch(e.sender)
+  const saasTrustNote = saasMatch
+    ? `TRUSTED THIRD-PARTY SAAS EMAIL: The sender "${e.sender}" is a known legitimate notification from ${saasMatch.name}.
+CRITICAL RULES for this email:
+1. The "external organization" warning shown by Outlook is EXPECTED and NORMAL — ${saasMatch.name} sends notifications from their own servers, not your org's tenant. This is NOT a red flag.
+2. Links pointing to these domains are LEGITIMATE for ${saasMatch.name}: ${saasMatch.linkDomains.join(", ")}. Do NOT flag them as suspicious.
+3. Do NOT flag this email as phishing solely because it is marked external or contains ${saasMatch.name} service links.
+4. Still scan for actual red flags: links going to non-${saasMatch.name} domains, unexpected credential requests, urgent pressure inconsistent with normal ${saasMatch.name} notifications, or content that doesn't match the subject.
+5. Sign-in alerts, new device notifications, and account activity summaries from ${saasMatch.name} are routine and expected — lean toward SAFE if content matches normal ${saasMatch.name} notification patterns.`
+    : ""
+
   return `You are a cybersecurity educator helping everyday office workers learn to identify email threats. Analyze the email below and respond ONLY with a JSON object - no markdown, no text outside the JSON.
 
 IMPORTANT CONTEXT:
 - Current date/time: ${utcString} (UTC) / ${localString} (${tz}). Do not flag dates as suspicious if they fall within the current day across timezones.
 - ${orgContext}
 - Sender: ${e.sender}
-- Outlook external org warning present: ${externalNote}
+- Is this an external sender? ${externalNote}
 - If sender is "(No sender found)" that is a technical extraction issue, NOT a red flag - do not flag it as suspicious
 - Do NOT assume external based on display name alone
 - ${sharePointLine}
 ${microsoftTrustNote}
+${saasTrustNote}
 ${customLine}
 ENVIRONMENT-SPECIFIC RULES (CRITICAL - follow these exactly):
 - This org uses Trend Micro and Microsoft SafeLinks. ALL links will route through safelinks.protection.outlook.com or Trend Micro URL filters. Do NOT flag these wrappers - links are already decoded.
@@ -164,7 +234,7 @@ ENVIRONMENT-SPECIFIC RULES (CRITICAL - follow these exactly):
 
 KEY RULES:
 1. NEVER give any email a free pass based on sender domain alone - even internal senders can be compromised.
-2. Only flag as external if Outlook shows the warning OR you find an external email address in body/signature.
+2. Only flag as external if the domain comparison above confirms it OR Outlook shows the warning.
 3. Well-known domains (microsoft.com etc) - don't flag the domain itself, but DO flag suspicious content, urgency, credential requests.
 4. Analyze content and intent independently of sender.
 5. If email involves adding users, granting access, payments, credential changes, or urgent action - suggested_action MUST include: "Verify this request through official channels other than email before taking action."
@@ -245,7 +315,6 @@ serve(async (req) => {
   if (!token || token !== EXTENSION_TOKEN) {
     return json({ error: "Unauthorized" }, 401, corsHeaders)
   }
-  // Cheap connectivity check from extension popup — no rate limit, no Anthropic call
   if (
     parsedBody !== null &&
     typeof parsedBody === "object" &&
@@ -298,7 +367,6 @@ serve(async (req) => {
     emailData.links = (emailData.links || []).slice(0, 20)
     emailData.attachments = (emailData.attachments || []).slice(0, 20)
 
-    // ── Server-side detection (replaces client-side logic) ─────────────────
     const attach = classifyAttachments(emailData.attachments)
     emailData.hasHighRiskAttachment = attach.hasHighRisk
     emailData.hasSuspiciousAttachment = attach.hasSuspicious
@@ -308,7 +376,6 @@ serve(async (req) => {
     return json({ error: "Invalid request body" }, 400, corsHeaders)
   }
 
-  // ── Gift card pre-check (bypass Claude entirely) ───────────────────────────
   if (checkForGiftCardFraud(emailData.subject, emailData.body)) {
     return json({ result: {
       verdict: 'PHISHING', phishing_score: 99, spam_score: 10,
@@ -321,7 +388,6 @@ serve(async (req) => {
 
   const prompt = buildPrompt(emailData, customPrompt, tenantDomain)
 
-  // ── Forward to Anthropic ──────────────────────────────────────────────────
   try {
     const t0 = Date.now()
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -353,7 +419,6 @@ serve(async (req) => {
     const clean = text.replace(/```json|```/g, "").trim()
     const parsed = JSON.parse(clean)
 
-    // ── Log scan result (fire-and-forget) ─────────────────────────────────
     supabase.from("scan_log").insert({
       token_key: tokenKey,
       verdict: parsed.verdict ?? "UNKNOWN",
@@ -385,7 +450,6 @@ async function hashToken(token: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("")
 }
 
-/** Normalize extension setting; allow only a hostname-like domain (no paths, ports, HTML). */
 function sanitizeTenantDomain(raw: unknown): string {
   if (typeof raw !== "string") return ""
   let s = raw.trim().toLowerCase().slice(0, MAX_TENANT_DOMAIN_LEN)

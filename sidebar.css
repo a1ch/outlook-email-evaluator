@@ -253,3 +253,219 @@
 /* ── Email ready state ───────────────────────────────────── */
 .oe-email-ready { padding: 8px 0; }
 .oe-email-ready p { font-size: 12px; color: var(--oe-text); line-height: 1.5; margin-bottom: 6px; }
+
+/* ── AI Loading Animation ────────────────────────────────── */
+#oe-ai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 12px 16px;
+  gap: 14px;
+}
+
+/* Brain graphic with pulse ring */
+.oe-ai-brain {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.oe-brain-svg {
+  width: 64px;
+  height: 64px;
+}
+.oe-brain-emoji {
+  animation: oe-brain-bob 1.8s ease-in-out infinite;
+}
+@keyframes oe-brain-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* Spinning progress ring around brain */
+.oe-ring-progress {
+  transform-origin: 32px 32px;
+  animation: oe-ring-spin 2s linear infinite;
+  stroke-linecap: round;
+}
+@keyframes oe-ring-spin {
+  0%   { stroke-dashoffset: 175; transform: rotate(-90deg); }
+  100% { stroke-dashoffset: -175; transform: rotate(270deg); }
+}
+
+/* Pulse ring behind brain */
+.oe-ai-pulse-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 2px solid #0078d4;
+  opacity: 0;
+  animation: oe-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes oe-pulse {
+  0%   { transform: translate(-50%, -50%) scale(0.8); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* Animated label text */
+.oe-ai-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0078d4;
+  text-align: center;
+  min-height: 18px;
+  letter-spacing: 0.2px;
+  animation: oe-label-fade 0.4s ease;
+}
+@keyframes oe-label-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Step list */
+.oe-ai-steps {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oe-ai-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--oe-card-bg);
+  border: 1px solid var(--oe-card-border);
+  opacity: 0.4;
+  transition: opacity 0.3s, border-color 0.3s, background 0.3s;
+}
+
+/* Active step */
+.oe-ai-step.oe-step-active {
+  opacity: 1;
+  border-color: #0078d4;
+  background: #e8f2fb;
+}
+.oe-dark .oe-ai-step.oe-step-active {
+  background: #0d2a40;
+  border-color: #4da3ff;
+}
+
+/* Done step */
+.oe-ai-step.oe-step-done {
+  opacity: 0.75;
+  border-color: #34a853;
+  background: #eaf7ec;
+}
+.oe-dark .oe-ai-step.oe-step-done {
+  background: #0d2d15;
+  border-color: #34a853;
+}
+
+/* Icon wrap — shows emoji normally, checkmark when done */
+.oe-step-icon-wrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.oe-step-icon {
+  font-size: 17px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.oe-step-check {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  color: #34a853;
+  font-weight: 700;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.25s, transform 0.25s;
+}
+.oe-step-done .oe-step-icon  { opacity: 0; transform: scale(0.7); }
+.oe-step-done .oe-step-check { opacity: 1; transform: scale(1); }
+
+/* Step text + progress bar */
+.oe-step-info { flex: 1; min-width: 0; }
+.oe-step-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--oe-text);
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.oe-step-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--oe-card-border);
+  overflow: hidden;
+}
+.oe-step-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  background: #0078d4;
+  transition: width 0.1s linear;
+}
+
+/* Fill bar animation when active */
+.oe-step-active .oe-step-fill {
+  animation: oe-fill-bar 1.4s ease-in-out forwards;
+}
+@keyframes oe-fill-bar {
+  0%   { width: 0%; }
+  60%  { width: 85%; }
+  100% { width: 95%; }
+}
+
+/* Fill bar when done — snap to 100% */
+.oe-step-done .oe-step-fill {
+  width: 100%;
+  background: #34a853;
+  transition: width 0.15s ease, background 0.15s;
+}
+
+/* Spinning icon on active step */
+.oe-step-active .oe-step-icon {
+  animation: oe-icon-spin 1s ease-in-out infinite alternate;
+}
+@keyframes oe-icon-spin {
+  0%   { transform: scale(1) rotate(-5deg); }
+  100% { transform: scale(1.15) rotate(5deg); }
+}
+
+/* Bouncing dots */
+.oe-ai-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  height: 12px;
+}
+.oe-ai-dots span {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #0078d4;
+  opacity: 0.5;
+  animation: oe-dot-bounce 1.2s ease-in-out infinite;
+}
+.oe-ai-dots span:nth-child(2) { animation-delay: 0.2s; }
+.oe-ai-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes oe-dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-5px); opacity: 1; }
+}
