@@ -22,7 +22,7 @@ The extension does **not** call Anthropic directly. It POSTs to your Edge Functi
 
 Deploy migrations and functions from the repo root. Full steps (CLI login, secrets, `db push`, deploy) are in **`supabase/README.md`**.
 
-- **Secrets** (set in Supabase): `ANTHROPIC_API_KEY`, `EXTENSION_TOKEN` (must match what users paste in the extension), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+- **Secrets** (set in Supabase): `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, optional legacy `EXTENSION_TOKEN`, and `ADMIN_SECRET` for the **[admin token console](supabase/README.md#admin-console-issue-tokens-to-clients)** (create per-client extension tokens).
 - **Functions**: `analyze-email` (main analysis), `report-feedback` (user feedback). Deploy with JWT verification disabled for browser calls, e.g.  
   `supabase functions deploy analyze-email --no-verify-jwt`  
   `supabase functions deploy report-feedback --no-verify-jwt`

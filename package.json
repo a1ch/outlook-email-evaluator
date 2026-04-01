@@ -7,7 +7,8 @@
     "test:watch": "jest --watch",
     "deploy:analyze-email": "supabase functions deploy analyze-email",
     "deploy:report-feedback": "supabase functions deploy report-feedback",
-    "deploy:functions": "supabase functions deploy analyze-email && supabase functions deploy report-feedback"
+    "deploy:functions": "supabase functions deploy analyze-email && supabase functions deploy report-feedback && supabase functions deploy admin-console",
+    "deploy:admin-console": "supabase functions deploy admin-console"
   },
   "devDependencies": {
     "jest": "^29.0.0",

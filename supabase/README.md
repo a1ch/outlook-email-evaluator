@@ -25,18 +25,27 @@ This folder configures that project and the `analyze-email` / `report-feedback` 
 5. Set Edge Function secrets in the dashboard (**Project Settings → Edge Functions → Secrets**) or via CLI:
 
    - `ANTHROPIC_API_KEY`
-   - `EXTENSION_TOKEN` (same value users paste into the Chrome extension)
+   - `EXTENSION_TOKEN` *(optional legacy)* — if set, that string still works as a shared client secret. Prefer per-client tokens from **admin-console** (below).
+   - `ADMIN_SECRET` — long random string; required to **create/list/revoke** client tokens in the admin UI (not used by the Chrome extension).
    - `SUPABASE_URL` (usually auto-provided; confirm in dashboard)
    - `SUPABASE_SERVICE_ROLE_KEY` (service role — never expose to the extension)
 
-6. Deploy functions (see also **Edge Functions from Cursor** below):
+6. Apply migrations and deploy functions:
 
    ```bash
-   supabase functions deploy analyze-email
-   supabase functions deploy report-feedback
+   supabase db push
+   npm run deploy:functions
    ```
 
-   Or from the repo root: `npm run deploy:functions` (requires Supabase CLI logged in and project linked).
+   This deploys `analyze-email`, `report-feedback`, and **`admin-console`**.
+
+## Admin console (issue tokens to clients)
+
+1. Open **`https://<project-ref>.supabase.co/functions/v1/admin-console`** in a normal browser tab (not the extension).
+2. Enter **`ADMIN_SECRET`** → **Load tokens** / **Create new token**.
+3. Copy the generated token once and send it to the client. They paste it into the extension **Connection → Extension Token** (same as before).
+
+Only **SHA-256 hashes** are stored in `extension_tokens`. Revoking a token stops that client immediately. You can keep **`EXTENSION_TOKEN`** for backward compatibility while migrating clients to DB-issued tokens.
 
 ## Edge Functions from Cursor (agent deploy)
 
