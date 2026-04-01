@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { hashToken, isExtensionTokenAllowed } from "../_shared/extension-auth.ts"
 
-const EXTENSION_TOKEN      = Deno.env.get("EXTENSION_TOKEN")!
+const LEGACY_EXTENSION_TOKEN = Deno.env.get("EXTENSION_TOKEN") ?? undefined
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
@@ -42,7 +43,12 @@ serve(async (req) => {
     (typeof rb?.oeAuth === "string" ? rb.oeAuth : "") ||
     (typeof rb?.token === "string" ? rb.token : "")
   const token = headerToken || bodyToken
-  if (!token || token !== EXTENSION_TOKEN) {
+  if (!token) {
+    return json({ error: "Unauthorized" }, 401, corsHeaders)
+  }
+
+  const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  if (!await isExtensionTokenAllowed(supabaseAuth, token, LEGACY_EXTENSION_TOKEN)) {
     return json({ error: "Unauthorized" }, 401, corsHeaders)
   }
 
@@ -79,7 +85,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const supabase = supabaseAuth
     const tokenKey = await hashToken(token)
     const now = Date.now()
     const feedbackWindowStart = new Date(now - FEEDBACK_RATE_WINDOW_MS).toISOString()
@@ -136,10 +142,3 @@ function json(body: unknown, status: number, headers: Record<string, string>) {
   })
 }
 
-async function hashToken(token: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(token)
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("")
-}
