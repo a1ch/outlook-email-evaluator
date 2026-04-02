@@ -1,4 +1,4 @@
-﻿importScripts('proxy-utils.js')
+importScripts('proxy-utils.js')
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Outlook Email Evaluator installed.')
@@ -6,8 +6,10 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Content script messages include sender.tab; other callers may not — guard before sendMessage.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'PING') {
-    return true
+  // Wake service worker; respond so sendMessage Promise resolves (content scripts cannot use chrome.tabs/scripting).
+  if (message.type === 'PING' || message.type === 'WAKE_EXTENSION') {
+    sendResponse({ ok: true })
+    return false
   }
 
   if (message.type === 'ANALYZE_EMAIL') {
@@ -70,7 +72,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const data = await response.json()
         // Server-side itSecurityEmail takes priority; fall back to local setting
         const itEmail = data.result?.itSecurityEmail || (result.itSecurityEmail || '').trim() || null
-        if (data.result && itEmail) data.result.itSecurityEmail = itEmail        chrome.tabs.sendMessage(sender.tab.id, { type: 'ANALYSIS_DONE', result: data.result })
+        if (data.result && itEmail) data.result.itSecurityEmail = itEmail
+        chrome.tabs.sendMessage(sender.tab.id, { type: 'ANALYSIS_DONE', result: data.result })
 
       } catch (err) {
         chrome.tabs.sendMessage(sender.tab.id, {

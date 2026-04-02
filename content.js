@@ -1,4 +1,4 @@
-﻿// Outlook Email Evaluator - Content Script
+// Outlook Email Evaluator - Content Script
 let sidebar = null;
 let lastEmailId = null;
 let observer = null;
@@ -163,20 +163,21 @@ function createSidebar() {
     setTimeout(analyzeCurrentEmail, 100);
   });
 
-  // Wake up extension button
+  // Wake up extension: ping background (content scripts cannot use chrome.tabs / chrome.scripting).
   document.getElementById('oe-wake-btn').addEventListener('click', async () => {
     const btn = document.getElementById('oe-wake-btn');
     btn.textContent = '⏳ Waking up...';
     btn.disabled = true;
-    try { await chrome.runtime.sendMessage({ type: 'PING' }); } catch(e) {}
     try {
-      const tabs = await chrome.tabs.query({ url: '*://outlook.cloud.microsoft/*' });
-      for (const tab of tabs) {
-        try { await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] }); } catch(e) {}
-      }
-    } catch(e) {}
-    btn.textContent = '✅ Done! Refresh your email view.';
-    setTimeout(() => { btn.textContent = '☀️ Wake Up Extension'; btn.disabled = false; }, 3000);
+      await chrome.runtime.sendMessage({ type: 'WAKE_EXTENSION' });
+      btn.textContent = '✅ Extension ready. If analysis still fails, refresh this page (F5).';
+    } catch (e) {
+      btn.textContent = '⚠️ Could not reach extension. Reload the extension or refresh this page.';
+    }
+    setTimeout(() => {
+      btn.textContent = '☀️ Wake Up Extension';
+      btn.disabled = false;
+    }, 4000);
   });
 
   // Event delegation for finding card toggles
