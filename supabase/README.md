@@ -39,13 +39,18 @@ This folder configures that project and the `analyze-email` / `report-feedback` 
 
    This deploys `analyze-email`, `report-feedback`, and **`admin-console`**.
 
-## Admin console (issue tokens to clients)
+## Admin console (issue & revoke client access tokens)
 
-1. Open **`https://<project-ref>.supabase.co/functions/v1/admin-console`** in a normal browser tab (not the extension).
-2. Enter **`ADMIN_SECRET`** → **Load tokens** / **Create new token**.
-3. Copy the generated token once and send it to the client. They paste it into the extension **Connection → Extension Token** (same as before).
+The function URL **`https://<project-ref>.supabase.co/functions/v1/admin-console`** is the **API** (POST with `ADMIN_SECRET`). Do not expect it to render as a web page in the browser — use the static UI instead.
 
-Only **SHA-256 hashes** are stored in `extension_tokens`. Revoking a token stops that client immediately. You can keep **`EXTENSION_TOKEN`** for backward compatibility while migrating clients to DB-issued tokens.
+1. From the **repository root**, run **`npm run admin:ui`** and open **`http://localhost:8765/admin-console.html`** (or serve the repo folder with any static server). Set **Admin API base URL** to your function URL if needed.
+2. Enter **`ADMIN_SECRET`** → **Load tokens**.
+3. **Issue token (deploy access)** — creates a new token for a company; copy it once and send it to the client. They paste it into the extension **Connection → Extension Token**.
+4. **Revoke access** — per row, or **Revoke all active** (emergency; double confirmation). Extensions using revoked tokens get **401** immediately.
+
+Only **SHA-256 hashes** are stored in `extension_tokens`. **Revoke does not remove** the optional legacy **`EXTENSION_TOKEN`** env secret — change that in the dashboard if you need to rotate the old shared secret.
+
+**Code deploys** (updating Edge Function source) use the CLI from this repo (`npm run deploy:functions`), not the admin page.
 
 ## Edge Functions from Cursor (agent deploy)
 

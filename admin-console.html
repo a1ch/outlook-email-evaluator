@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Outlook Email Evaluator — Admin</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#8b9cb3; --accent:#3b82f6; --danger:#ef4444; --ok:#22c55e; }
+    * { box-sizing: border-box; }
+    body { font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; line-height: 1.5; }
+    .banner-warn { background: #422006; border: 1px solid #ca8a04; color: #fef08a; padding: 12px 14px; border-radius: 8px; margin-bottom: 20px; max-width: 720px; font-size: 13px; }
+    .banner-warn code { background: #1c1917; padding: 2px 6px; border-radius: 4px; }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 8px; }
+    p.sub { color: var(--muted); font-size: 0.875rem; margin: 0 0 24px; }
+    .card { background: var(--card); border-radius: 10px; padding: 20px; max-width: 720px; margin-bottom: 20px; border: 1px solid #2a3544; }
+    label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+    input[type="password"], input[type="text"] { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid #3d4f66; background: #0f1419; color: var(--text); font-size: 14px; }
+    button { background: var(--accent); color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; }
+    button:hover { filter: brightness(1.08); }
+    button.danger { background: var(--danger); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-top: 12px; }
+    .once { background: #14532d; border: 1px solid var(--ok); padding: 12px; border-radius: 8px; font-family: ui-monospace, monospace; word-break: break-all; font-size: 13px; margin-top: 12px; display: none; }
+    .once.show { display: block; }
+    .once-actions { margin-top: 10px; }
+    .once-actions button { background: #065f46; }
+    .err { color: #fca5a5; font-size: 14px; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #2a3544; }
+    th { color: var(--muted); font-weight: 600; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+    .badge.on { background: #14532d; color: #86efac; }
+    .badge.off { background: #450a0a; color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <div class="banner-warn">Set <strong>ADMIN_SECRET</strong> in Supabase → Edge Functions → Secrets. This page calls your <strong>admin-console</strong> function API — paste the API URL below if it differs from the default.</div>
+
+  <h1>Outlook Email Evaluator — Admin</h1>
+  <p class="sub">Issue <strong>one extension token per company</strong>. They paste it in Chrome → Extension → Connection → Extension Token. Only a hash is stored in the database.</p>
+
+  <div class="card">
+    <label for="apiBase">Admin API base URL</label>
+    <input type="text" id="apiBase" placeholder="https://YOUR_PROJECT.supabase.co/functions/v1/admin-console" autocomplete="off" />
+    <p class="hint" style="color:var(--muted);font-size:12px;margin:8px 0 0;">Saved in this browser (localStorage). Must match your deployed <code>admin-console</code> function.</p>
+  </div>
+
+  <div class="card">
+    <label for="secret">Admin secret</label>
+    <input type="password" id="secret" placeholder="Same as ADMIN_SECRET in Supabase" autocomplete="off" />
+    <div class="row">
+      <button type="button" id="btnList">Load tokens</button>
+    </div>
+    <p class="err" id="err"></p>
+  </div>
+
+  <div class="card">
+    <label for="label">Company / client name</label>
+    <input type="text" id="label" placeholder="e.g. Contoso Ltd — pilot batch 2" maxlength="200" />
+    <p class="hint" style="color:var(--muted);font-size:12px;margin:8px 0 0;">Issue = deploy access — send the token to that company for <strong>Connection → Extension Token</strong>.</p>
+    <div class="row">
+      <button type="button" id="btnCreate">Issue token (deploy access)</button>
+    </div>
+    <div class="once" id="once">
+      <div id="onceText"></div>
+      <div class="once-actions"><button type="button" id="btnCopy">Copy token</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <strong>Access tokens</strong>
+      <button type="button" class="danger" id="btnRevokeAll" style="font-size:12px;padding:6px 12px;display:none;">Revoke all active</button>
+    </div>
+    <p class="hint" style="color:var(--muted);font-size:12px;margin:8px 0 12px;">Revoke = immediate 401 for that token. Does <strong>not</strong> change the optional legacy <code>EXTENSION_TOKEN</code> env secret.</p>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Company</th><th>Created</th><th>Status</th><th>Revoke access</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="4" style="color:var(--muted)">Click “Load tokens”</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#334155;">
+    <strong>Deploy Edge Function <em>code</em></strong>
+    <p class="hint" style="color:var(--muted);font-size:13px;margin:8px 0 0;">From the repo: <code>npm run deploy:functions</code></p>
+  </div>
+
+  <script>
+(function () {
+  const DEFAULT_API = 'https://pikplhvawbhndijpkdbq.supabase.co/functions/v1/admin-console';
+  const LS_KEY = 'oe_admin_api_base';
+
+  const $ = (id) => document.getElementById(id);
+  const err = $('err');
+  const rows = $('rows');
+  const once = $('once');
+  const onceText = $('onceText');
+  const apiInput = $('apiBase');
+  let lastCreatedToken = '';
+
+  apiInput.value = localStorage.getItem(LS_KEY) || DEFAULT_API;
+  apiInput.addEventListener('change', () => {
+    localStorage.setItem(LS_KEY, apiInput.value.trim());
+  });
+
+  function apiBase() {
+    const u = (apiInput.value || '').trim().replace(/\/$/, '');
+    return u || DEFAULT_API;
+  }
+
+  function authHeaders() {
+    const s = $('secret').value.trim();
+    if (!s) throw new Error('Enter admin secret first.');
+    return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s };
+  }
+
+  async function api(body) {
+    err.textContent = '';
+    const res = await fetch(apiBase(), {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data;
+  }
+
+  $('btnList').onclick = async () => {
+    try {
+      localStorage.setItem(LS_KEY, apiInput.value.trim());
+      const data = await api({ action: 'list' });
+      rows.innerHTML = (data.tokens || []).map((t) => {
+        const active = !t.revoked_at;
+        return '<tr><td>' + escapeHtml(t.label || '—') + '</td><td>' + escapeHtml(t.created_at || '') + '</td><td>' +
+          (active ? '<span class="badge on">Active</span>' : '<span class="badge off">Revoked</span>') + '</td><td>' +
+          (active ? '<button type="button" class="danger" data-id="' + escapeHtml(t.id) + '">Revoke access</button>' : '') + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" style="color:var(--muted)">No tokens yet.</td></tr>';
+      const hasActive = (data.tokens || []).some((t) => !t.revoked_at);
+      const rAll = $('btnRevokeAll');
+      if (rAll) rAll.style.display = hasActive ? 'inline-block' : 'none';
+      rows.querySelectorAll('button[data-id]').forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm('Revoke this token? Clients using it will stop working.')) return;
+          try {
+            await api({ action: 'revoke', id: btn.getAttribute('data-id') });
+            $('btnList').click();
+          } catch (e) { err.textContent = e.message; }
+        };
+      });
+    } catch (e) { err.textContent = e.message; }
+  };
+
+  $('btnRevokeAll').onclick = async () => {
+    if (!confirm('Revoke ALL active tokens? Every client using these tokens will get Unauthorized until you issue new tokens.')) return;
+    if (!confirm('This cannot be undone. Continue?')) return;
+    try {
+      const data = await api({ action: 'revoke_all' });
+      err.textContent = '';
+      alert('Revoked ' + (data.revoked_count ?? 0) + ' token(s).');
+      $('btnList').click();
+    } catch (e) { err.textContent = e.message; }
+  };
+
+  $('btnCreate').onclick = async () => {
+    once.classList.remove('show');
+    lastCreatedToken = '';
+    try {
+      localStorage.setItem(LS_KEY, apiInput.value.trim());
+      const data = await api({ action: 'create', label: $('label').value.trim() || null });
+      lastCreatedToken = data.token || '';
+      onceText.textContent = 'Give this to the client once (Chrome extension → Connection → Extension Token):\n\n' + data.token;
+      once.classList.add('show');
+      $('label').value = '';
+      $('btnList').click();
+    } catch (e) { err.textContent = e.message; }
+  };
+
+  $('btnCopy').onclick = async () => {
+    if (!lastCreatedToken) return;
+    try {
+      await navigator.clipboard.writeText(lastCreatedToken);
+      $('btnCopy').textContent = 'Copied!';
+      setTimeout(() => { $('btnCopy').textContent = 'Copy token'; }, 2000);
+    } catch (e) { err.textContent = 'Copy failed: ' + e.message; }
+  };
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+})();
+  </script>
+</body>
+</html>

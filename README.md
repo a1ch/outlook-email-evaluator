@@ -15,6 +15,7 @@ Supported Outlook URLs include `outlook.office.com`, `outlook.office365.com`, an
 - **User feedback** — optional report of false positives or missed threats (stored in Supabase for review)
 - **Collapsible sidebar** — minimal tab when collapsed
 - **Settings** — additional instructions for the model (sent with each analysis); optional org domain stored in the extension
+- **Admin console** (operators only) — issue and revoke **per-company extension tokens** via the **`admin-console`** Edge Function API; open **`admin-console.html`** locally (`npm run admin:ui`). See **`supabase/README.md`** (secret: `ADMIN_SECRET`; API base: `https://<project-ref>.supabase.co/functions/v1/admin-console`)
 
 ## Backend (Supabase)
 
