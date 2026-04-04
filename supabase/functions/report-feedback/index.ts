@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { hashToken, isExtensionTokenAllowed } from "../_shared/extension-auth.ts"
+import { checkExtensionToken, hashToken } from "../_shared/extension-auth.ts"
 
 const LEGACY_EXTENSION_TOKEN = Deno.env.get("EXTENSION_TOKEN") ?? undefined
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!
@@ -48,8 +48,13 @@ serve(async (req) => {
   }
 
   const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-  if (!await isExtensionTokenAllowed(supabaseAuth, token, LEGACY_EXTENSION_TOKEN)) {
-    return json({ error: "Unauthorized" }, 401, corsHeaders)
+  const auth = await checkExtensionToken(supabaseAuth, token, LEGACY_EXTENSION_TOKEN)
+  if (!auth.ok) {
+    const err =
+      auth.reason === "expired"
+        ? "License expired — request a new key from your administrator."
+        : "Unauthorized"
+    return json({ error: err }, 401, corsHeaders)
   }
 
   let feedbackType: string

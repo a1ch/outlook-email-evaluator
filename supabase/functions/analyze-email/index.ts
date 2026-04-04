@@ -1,6 +1,6 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { hashToken, isExtensionTokenAllowed } from "../_shared/extension-auth.ts"
+import { checkExtensionToken, hashToken } from "../_shared/extension-auth.ts"
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!
 /** Optional legacy single secret; clients may also use tokens issued via admin-console (DB). */
@@ -628,8 +628,13 @@ serve(async (req) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-  if (!await isExtensionTokenAllowed(supabase, token, LEGACY_EXTENSION_TOKEN)) {
-    return json({ error: "Unauthorized" }, 401, corsHeaders)
+  const auth = await checkExtensionToken(supabase, token, LEGACY_EXTENSION_TOKEN)
+  if (!auth.ok) {
+    const err =
+      auth.reason === "expired"
+        ? "License expired — request a new key from your administrator."
+        : "Unauthorized"
+    return json({ error: err }, 401, corsHeaders)
   }
 
   if (

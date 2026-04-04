@@ -49,7 +49,9 @@ function getInstructionsText(req: Request): string {
     "Paste this as the page’s “Admin API base URL” if it differs from the default:",
     `  ${api}`,
     "",
-    "POST with Authorization: Bearer <ADMIN_SECRET> and JSON body { action: list | create | revoke | revoke_all } — see repo docs.",
+    "POST with Authorization: Bearer <ADMIN_SECRET> and JSON body:",
+    "  { action: list | revoke | revoke_all }",
+    "  { action: create, label?: string, license?: \"trial\" | \"annual\" } — trial = 15 days, annual = 365 days (default trial).",
   ].join("\n")
 }
 
@@ -73,11 +75,27 @@ serve(async (req) => {
     return json({ error: "Unauthorized" }, 401)
   }
 
-  let body: { action?: string; label?: string | null; id?: string }
+  let body: {
+    action?: string
+    label?: string | null
+    id?: string
+    /** trial = 15 days, annual = 365 days from issue. Omit = trial (new keys expire). */
+    license?: "trial" | "annual"
+  }
   try {
     body = await req.json()
   } catch {
     return json({ error: "Invalid JSON" }, 400)
+  }
+
+  function expiresAtForLicense(license: "trial" | "annual"): string {
+    const d = new Date()
+    if (license === "annual") {
+      d.setDate(d.getDate() + 365)
+    } else {
+      d.setDate(d.getDate() + 15)
+    }
+    return d.toISOString()
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -86,7 +104,7 @@ serve(async (req) => {
   if (action === "list") {
     const { data, error } = await supabase
       .from("extension_tokens")
-      .select("id, label, created_at, revoked_at")
+      .select("id, label, created_at, revoked_at, license_type, expires_at")
       .order("created_at", { ascending: false })
 
     if (error) return json({ error: error.message }, 500)
@@ -97,14 +115,22 @@ serve(async (req) => {
     const plain = genToken()
     const token_hash = await hashToken(plain)
     const label = typeof body.label === "string" ? body.label.slice(0, 200) : null
+    const license: "trial" | "annual" = body.license === "annual" ? "annual" : "trial"
+    const expires_at = expiresAtForLicense(license)
     const { data, error } = await supabase
       .from("extension_tokens")
-      .insert({ token_hash, label })
+      .insert({ token_hash, label, license_type: license, expires_at })
       .select("id")
       .single()
 
     if (error) return json({ error: error.message }, 500)
-    return json({ token: plain, id: data?.id, label })
+    return json({
+      token: plain,
+      id: data?.id,
+      label,
+      license_type: license,
+      expires_at,
+    })
   }
 
   if (action === "revoke") {

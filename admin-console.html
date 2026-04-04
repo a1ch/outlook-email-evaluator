@@ -306,6 +306,7 @@
   }
   .badge-active  { background: var(--safe-dim);  color: var(--safe); }
   .badge-revoked { background: var(--phish-dim); color: var(--phish); }
+  .badge-expired { background: var(--warn-dim); color: var(--warn); }
   .action-btn {
     background: none;
     border: 1px solid var(--border2);
@@ -362,6 +363,19 @@
     transition: border-color 0.15s;
   }
   .field-row input:focus { border-color: var(--accent); }
+  .field-row select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 9px 13px;
+    outline: none;
+    cursor: pointer;
+  }
+  .field-row select:focus { border-color: var(--accent); }
   .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
   .btn-cancel {
     background: var(--surface2);
@@ -419,6 +433,88 @@
   .plan-accent { color: var(--accent); }
   .plan-sep { color: var(--border2); }
 
+  /* Quick issue — company product keys */
+  .quick-license-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: linear-gradient(135deg, rgba(79,124,255,0.12) 0%, var(--surface) 50%);
+    border: 1px solid rgba(79,124,255,0.35);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 28px;
+  }
+  .quick-license-title {
+    font-family: var(--head);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .quick-license-desc {
+    color: var(--muted);
+    font-size: 12px;
+    max-width: 520px;
+    line-height: 1.5;
+  }
+  .btn-quick-issue {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 22px;
+    font-family: var(--head);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s, transform 0.1s;
+    box-shadow: 0 4px 14px rgba(79,124,255,0.35);
+  }
+  .btn-quick-issue:hover { opacity: 0.92; }
+  .btn-quick-issue:active { transform: scale(0.98); }
+
+  .token-box {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--safe);
+    word-break: break-all;
+    line-height: 1.5;
+    max-height: 120px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+  .token-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .btn-copy {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(79,124,255,0.35);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: var(--head);
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-copy:hover { background: rgba(79,124,255,0.22); }
+  .btn-copy.secondary {
+    background: var(--surface2);
+    color: var(--muted);
+    border-color: var(--border2);
+  }
+  .btn-copy.secondary:hover { color: var(--text); border-color: var(--border); }
+
   @media (max-width: 768px) {
     .charts-row { grid-template-columns: 1fr; }
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -462,6 +558,15 @@
       <span class="plan-sep">|</span>
       <span class="plan-label">Total scans (all time)</span>
       <span class="plan-value" id="total-scans">—</span>
+    </div>
+
+    <!-- Issue company key (product license) -->
+    <div class="quick-license-card">
+      <div>
+        <div class="quick-license-title">Company product keys</div>
+        <div class="quick-license-desc">One key per customer company. Send them the key once; they paste it in the Chrome extension → <strong>Connection</strong> → <strong>Extension Token</strong>. Only a hash is stored in Supabase.</div>
+      </div>
+      <button type="button" class="btn-quick-issue" onclick="openAddModal()">＋ Issue new company key</button>
     </div>
 
     <!-- Stats -->
@@ -509,21 +614,23 @@
       </div>
     </div>
 
-    <!-- Seats -->
+    <!-- Licensed companies -->
     <div class="section-header">
-      <div class="section-title">Seats</div>
+      <div class="section-title">Licensed companies</div>
       <div class="section-line"></div>
     </div>
     <div class="seats-card">
       <div class="seats-header">
-        <div class="seats-title">User seats</div>
-        <button class="btn-add" onclick="openAddModal()">+ Add seat</button>
+        <div class="seats-title">Keys &amp; usage</div>
+        <button class="btn-add" onclick="openAddModal()">＋ Issue key</button>
       </div>
       <table>
         <thead>
           <tr>
-            <th>Name / Email</th>
-            <th>Token</th>
+            <th>Company / contact</th>
+            <th>Token hash</th>
+            <th>License</th>
+            <th>Expires</th>
             <th>Status</th>
             <th>Scans (30d)</th>
             <th>Threats caught</th>
@@ -532,7 +639,7 @@
           </tr>
         </thead>
         <tbody id="seats-tbody">
-          <tr><td colspan="7" class="loading">Loading seats…</td></tr>
+          <tr><td colspan="9" class="loading">Loading seats…</td></tr>
         </tbody>
       </table>
     </div>
@@ -561,23 +668,37 @@
   </div>
 </div>
 
-<!-- Add seat modal -->
+<!-- Issue company key modal -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
-    <h3>Add seat</h3>
-    <p>Creates a new extension token for this user. Send them the token to paste into the extension settings.</p>
-    <div class="field-row">
-      <div class="field-label">Name / label</div>
-      <input type="text" id="new-label" placeholder="e.g. Sarah — Finance" />
+    <h3>Issue company product key</h3>
+    <p id="modal-intro">Creates one license key for this customer. You’ll copy it once here — it is not shown again.</p>
+    <div id="modal-form">
+      <div class="field-row">
+        <div class="field-label">Company name</div>
+        <input type="text" id="new-label" placeholder="e.g. Acme Corporation" autocomplete="organization" />
+      </div>
+      <div class="field-row">
+        <div class="field-label">Contact email (optional)</div>
+        <input type="email" id="new-email" placeholder="it@acme.com — for your records only" autocomplete="off" />
+      </div>
+      <div class="field-row">
+        <div class="field-label">License</div>
+        <select id="new-license">
+          <option value="trial">Trial — 15 days</option>
+          <option value="annual">Annual — 365 days</option>
+        </select>
+      </div>
     </div>
-    <div class="field-row">
-      <div class="field-label">Email (optional)</div>
-      <input type="text" id="new-email" placeholder="sarah@company.com" />
+    <div class="token-result" id="new-token-result" style="display:none;"></div>
+    <div class="token-box" id="new-token-box" style="display:none;"></div>
+    <div class="token-actions" id="new-token-actions" style="display:none;">
+      <button type="button" class="btn-copy" id="btn-copy-key" onclick="copyIssuedKey()">Copy key</button>
+      <button type="button" class="btn-copy secondary" id="btn-copy-letter" onclick="copyClientInstructions()">Copy email for customer</button>
     </div>
-    <div class="token-result" id="new-token-result"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
-      <button class="btn-primary" style="width:auto;padding:9px 24px" onclick="createSeat()">Generate token</button>
+    <div class="modal-actions" id="modal-actions-row">
+      <button class="btn-cancel" onclick="closeAddModal()">Close</button>
+      <button class="btn-primary" style="width:auto;padding:9px 24px" id="btn-generate" onclick="createSeat()">Generate product key</button>
     </div>
   </div>
 </div>
@@ -586,6 +707,29 @@
 // ── State ────────────────────────────────────────────────────────────────────
 let SB_URL = '', SB_KEY = '', ORG_ID = '';
 let orgTokenHashes = [];
+let lastIssuedToken = '';
+let lastIssuedCompany = '';
+let lastIssuedExpiresAt = '';
+/** Set in showApp — used to refresh plan bar after issuing a key */
+let currentOrgRow = null;
+
+function expiresAtForLicense(license) {
+  const d = new Date();
+  if (license === 'annual') d.setDate(d.getDate() + 365);
+  else d.setDate(d.getDate() + 15);
+  return d.toISOString();
+}
+
+function tokenIsExpired(t) {
+  if (!t.expires_at) return false;
+  return new Date(t.expires_at) <= new Date();
+}
+
+function tokenIsActive(t) {
+  if (t.revoked_at) return false;
+  if (tokenIsExpired(t)) return false;
+  return true;
+}
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 async function doLogin() {
@@ -646,6 +790,7 @@ const sb = (path, opts) => sbFetch(SB_URL, SB_KEY, path, opts);
 
 // ── Show app ──────────────────────────────────────────────────────────────────
 async function showApp(org) {
+  currentOrgRow = org;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('org-name-pill').textContent = org.name;
@@ -657,11 +802,11 @@ async function showApp(org) {
 // ── Stats ─────────────────────────────────────────────────────────────────────
 async function loadStats(org) {
   // Fetch seat hashes for this org so we can query scan_log
-  const tokR = await sb('/rest/v1/extension_tokens?org_id=eq.' + ORG_ID + '&select=token_hash,revoked_at');
+  const tokR = await sb('/rest/v1/extension_tokens?org_id=eq.' + ORG_ID + '&select=token_hash,revoked_at,expires_at');
   const tokens = tokR.ok ? await tokR.json() : [];
   orgTokenHashes = tokens.map(t => t.token_hash);
 
-  const activeSeats = tokens.filter(t => !t.revoked_at).length;
+  const activeSeats = tokens.filter(tokenIsActive).length;
   document.getElementById('seat-usage').textContent = activeSeats + ' / ' + org.seat_limit;
 
   if (!orgTokenHashes.length) {
@@ -755,13 +900,13 @@ function renderDonut(phish, susp, spam, safe) {
 
 // ── Seats ─────────────────────────────────────────────────────────────────────
 async function loadSeats() {
-  const r = await sb('/rest/v1/extension_tokens?org_id=eq.' + ORG_ID + '&select=id,label,user_email,token_hash,created_at,revoked_at&order=created_at.asc');
+  const r = await sb('/rest/v1/extension_tokens?org_id=eq.' + ORG_ID + '&select=id,label,user_email,token_hash,created_at,revoked_at,license_type,expires_at&order=created_at.asc');
   const tokens = r.ok ? await r.json() : [];
   const since30 = new Date(Date.now() - 30*24*60*60*1000).toISOString();
 
   const tbody = document.getElementById('seats-tbody');
   if (!tokens.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="loading">No seats yet — add one above.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="loading">No company keys yet — use <strong>Issue new company key</strong> above.</td></tr>';
     return;
   }
 
@@ -779,16 +924,23 @@ async function loadSeats() {
 
   tbody.innerHTML = tokens.map(t => {
     const st = statMap[t.token_hash] || {};
-    const status = t.revoked_at ? 'revoked' : 'active';
+    let status = 'active';
+    let badgeClass = 'badge-active';
+    if (t.revoked_at) { status = 'revoked'; badgeClass = 'badge-revoked'; }
+    else if (tokenIsExpired(t)) { status = 'expired'; badgeClass = 'badge-expired'; }
     const lastActive = st.lastScan ? timeAgo(st.lastScan) : 'never';
     const shortHash = t.token_hash.slice(0,12) + '…';
+    const lic = t.license_type === 'annual' ? 'Annual' : (t.license_type === 'trial' ? 'Trial' : '—');
+    const exp = t.expires_at ? new Date(t.expires_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—';
     return `<tr>
       <td>
         <div class="seat-name">${esc(t.label || '(unnamed)')}</div>
         <div class="seat-email">${esc(t.user_email || '')}</div>
       </td>
       <td><span class="seat-token" title="Click to copy full hash" onclick="copyText('${esc(t.token_hash)}', this)">${shortHash}</span></td>
-      <td><span class="badge badge-${status}">${status}</span></td>
+      <td>${lic}</td>
+      <td style="color:var(--muted);font-size:11px">${esc(exp)}</td>
+      <td><span class="badge ${badgeClass}">${status}</span></td>
       <td>${st.scans30d || 0}</td>
       <td>${st.threats || 0}</td>
       <td>${lastActive}</td>
@@ -823,44 +975,138 @@ async function loadRecentScans() {
   </tr>`).join('');
 }
 
-// ── Add seat modal ────────────────────────────────────────────────────────────
+// ── Issue company key modal ───────────────────────────────────────────────────
 function openAddModal() {
+  lastIssuedToken = '';
+  lastIssuedCompany = '';
+  lastIssuedExpiresAt = '';
   document.getElementById('new-label').value = '';
   document.getElementById('new-email').value = '';
+  document.getElementById('new-license').value = 'trial';
+  document.getElementById('modal-intro').style.display = 'block';
+  document.getElementById('modal-form').style.display = 'block';
   document.getElementById('new-token-result').style.display = 'none';
+  document.getElementById('new-token-result').textContent = '';
+  document.getElementById('new-token-box').style.display = 'none';
+  document.getElementById('new-token-box').textContent = '';
+  document.getElementById('new-token-actions').style.display = 'none';
+  document.getElementById('btn-generate').style.display = 'inline-block';
+  document.getElementById('modal-actions-row').querySelector('.btn-cancel').textContent = 'Cancel';
   document.getElementById('add-modal').classList.add('open');
+  setTimeout(() => document.getElementById('new-label').focus(), 100);
 }
+
 function closeAddModal() {
   document.getElementById('add-modal').classList.remove('open');
   loadSeats();
+  if (currentOrgRow) loadStats(currentOrgRow);
 }
 
 async function createSeat() {
   const label = document.getElementById('new-label').value.trim();
   const email = document.getElementById('new-email').value.trim();
-  if (!label) { alert('Please enter a name for this seat.'); return; }
+  const license = document.getElementById('new-license').value === 'annual' ? 'annual' : 'trial';
+  if (!label) {
+    alert('Enter the company name.');
+    document.getElementById('new-label').focus();
+    return;
+  }
 
-  // Generate a plain token (random 32-byte hex), then hash it server-side via edge function
-  // For simplicity here: generate UUID-style token, store hash via service role
   const plain = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
   const hash = await sha256(plain);
+  const expires_at = expiresAtForLicense(license);
 
   const r = await sb('/rest/v1/extension_tokens', {
     method: 'POST',
-    body: JSON.stringify({ token_hash: hash, label, user_email: email || null, org_id: ORG_ID }),
+    body: JSON.stringify({
+      token_hash: hash,
+      label,
+      user_email: email || null,
+      org_id: ORG_ID,
+      license_type: license,
+      expires_at,
+    }),
   });
 
-  if (r.ok) {
-    const result = document.getElementById('new-token-result');
-    result.textContent = '✓ Token generated — copy it now, it will not be shown again:\n\n' + plain;
-    result.style.display = 'block';
-  } else {
-    alert('Failed to create seat. Check console.');
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    alert('Could not create key: ' + (err.message || err.hint || r.status) + (err.details ? ' — ' + err.details : ''));
+    return;
   }
+
+  lastIssuedToken = plain;
+  lastIssuedCompany = label;
+  lastIssuedExpiresAt = expires_at;
+
+  document.getElementById('modal-intro').style.display = 'none';
+  document.getElementById('modal-form').style.display = 'none';
+  document.getElementById('btn-generate').style.display = 'none';
+
+  const okMsg = document.getElementById('new-token-result');
+  const expLabel = new Date(expires_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  okMsg.textContent = '✓ Key created for ' + label + ' (' + (license === 'annual' ? 'Annual' : 'Trial') + ', valid until ' + expLabel + '). Copy it now — it cannot be retrieved later.';
+  okMsg.style.display = 'block';
+
+  const box = document.getElementById('new-token-box');
+  box.textContent = plain;
+  box.style.display = 'block';
+
+  document.getElementById('new-token-actions').style.display = 'flex';
+  document.getElementById('modal-actions-row').querySelector('.btn-cancel').textContent = 'Done';
+
+  try {
+    await navigator.clipboard.writeText(plain);
+    const bk = document.getElementById('btn-copy-key');
+    const t = bk.textContent;
+    bk.textContent = 'Copied!';
+    setTimeout(() => { bk.textContent = t; }, 2000);
+  } catch (_) {}
+}
+
+function copyIssuedKey() {
+  if (!lastIssuedToken) return;
+  navigator.clipboard.writeText(lastIssuedToken).then(() => {
+    const bk = document.getElementById('btn-copy-key');
+    const t = bk.textContent;
+    bk.textContent = 'Copied!';
+    setTimeout(() => { bk.textContent = t; }, 2000);
+  });
+}
+
+function copyClientInstructions() {
+  if (!lastIssuedToken) return;
+  const company = lastIssuedCompany || 'your organization';
+  const expLine = lastIssuedExpiresAt
+    ? ('This license is valid until ' + new Date(lastIssuedExpiresAt).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' }) + ' (local time).')
+    : '';
+  const body = [
+    'Hello,',
+    '',
+    'Here is your license key for the Email Evaluator Chrome extension (one key for ' + company + '):',
+    '',
+    lastIssuedToken,
+    '',
+    expLine,
+    '',
+    'How to use:',
+    '1. Install the Outlook Email Evaluator extension from the link we provided.',
+    '2. Click the extension icon → open Connection (or settings).',
+    '3. Paste the key above into "Extension Token" and save.',
+    '',
+    'Keep this key confidential — it activates your licensed access.',
+    '',
+    '— IT / Security',
+  ].join('\n');
+  navigator.clipboard.writeText(body).then(() => {
+    const b = document.getElementById('btn-copy-letter');
+    const t = b.textContent;
+    b.textContent = 'Copied!';
+    setTimeout(() => { b.textContent = t; }, 2000);
+  });
 }
 
 async function revokeSeat(tokenId) {
-  if (!confirm('Revoke this seat? The user will lose access immediately.')) return;
+  if (!confirm('Revoke this company’s key? Their extension will stop working until you issue a new key.')) return;
   await sb('/rest/v1/extension_tokens?id=eq.' + tokenId, {
     method: 'PATCH',
     body: JSON.stringify({ revoked_at: new Date().toISOString() }),
@@ -894,6 +1140,15 @@ function copyText(text, el) {
     setTimeout(() => { el.textContent = orig; el.style.color = ''; }, 1500);
   });
 }
+
+document.getElementById('add-modal').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const gen = document.getElementById('btn-generate');
+  if (!gen || gen.style.display === 'none') return;
+  if (e.target.id !== 'new-label' && e.target.id !== 'new-email') return;
+  e.preventDefault();
+  createSeat();
+});
 </script>
 </body>
 </html>

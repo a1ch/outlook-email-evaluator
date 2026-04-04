@@ -72,6 +72,9 @@ function getErrorUi(fullMessage) {
   if (/Failed to fetch|NetworkError|network|not reachable|ERR_INTERNET|ERR_NETWORK|offline/i.test(m)) {
     return { label: 'Offline or blocked', fix: 'Check your internet and VPN. Ensure Outlook and *.supabase.co are allowed.' }
   }
+  if (/License expired|expired.*administrator/i.test(m)) {
+    return { label: 'License expired', fix: 'Ask your administrator for a new key, then Extension → Connection → Extension Token.' }
+  }
   if (/Analysis failed:\s*Proxy error 401|401|Unauthorized|Token rejected/i.test(m)) {
     return { label: 'Not authorized', fix: 'Open the extension → Connection → fix Extension Token to match Supabase secrets.' }
   }
