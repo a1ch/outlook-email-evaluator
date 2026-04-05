@@ -1,4 +1,4 @@
--- Organizations: one row per paying customer
+-- Organizations: one row per paying customer (runs after extension_tokens base table)
 create table if not exists public.organizations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
