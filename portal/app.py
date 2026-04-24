@@ -58,6 +58,16 @@ def _secret(name: str) -> str:
     return (os.environ.get(name) or "").strip()
 
 
+def _legal_doc_urls() -> tuple[str, str]:
+    """Terms and Privacy URLs for the signup checkbox (secrets override defaults)."""
+    terms = _secret("TERMS_URL") or "https://ingot.solutions/terms"
+    privacy = (
+        _secret("PRIVACY_URL")
+        or "https://github.com/a1ch/outlook-email-evaluator/blob/main/PRIVACY.md"
+    )
+    return terms, privacy
+
+
 def get_supabase() -> Client:
     url = _secret("SUPABASE_URL")
     key = _secret("SUPABASE_SERVICE_ROLE_KEY")
@@ -168,6 +178,14 @@ def main() -> None:
             options=["trial", "annual"],
             format_func=lambda x: "Trial (15 days)" if x == "trial" else "Annual (365 days)",
         )
+        terms_url, privacy_url = _legal_doc_urls()
+        st.markdown(
+            f"Legal: [Terms and Conditions]({terms_url}) · [Privacy Policy]({privacy_url})"
+        )
+        agree_terms = st.checkbox(
+            "I have read and agree to the Terms and Conditions and Privacy Policy.",
+            value=False,
+        )
         submitted = st.form_submit_button("Generate my key")
 
     if not submitted:
@@ -178,6 +196,10 @@ def main() -> None:
 
     if portal_secret and invite != portal_secret:
         st.error("Invalid signup passphrase.")
+        return
+
+    if not agree_terms:
+        st.error("You must agree to the Terms and Conditions and Privacy Policy to receive a key.")
         return
 
     email = (email or "").strip()
