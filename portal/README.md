@@ -1,6 +1,6 @@
 # Email Evaluator — self-serve product key portal (Streamlit)
 
-Small web UI where approved users request a **Chrome extension product key**. Keys are stored hashed in Supabase (`extension_tokens`), same as the admin dashboard.
+Small web UI where approved users request a **Chrome extension product key**. Each signup creates a row in **`customers`**, then a row in **`extension_tokens`** with **`customer_id`** set (see migration `20260406120000_customers.sql`). Keys are still stored hashed.
 
 **You do not need to run this on your PC for end users.** Host it on **Streamlit Community Cloud** (free tier available) so everyone gets a normal **https://** URL.
 
@@ -18,7 +18,7 @@ Small web UI where approved users request a **Chrome extension product key**. Ke
    That file loads the UI from **`portal/app.py`**.  
    Dependencies are installed from the root **`requirements.txt`** (also required for this layout).
 
-5. Open **Advanced settings** → **Secrets**. Paste your secrets as TOML (same shape as `.streamlit/secrets.toml.example`):
+5. Open **⚙ Settings** → **Secrets**. Paste TOML with **exact** keys `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (see **`.streamlit/secrets.toml.example`** at the **repo root**):
 
    ```toml
    SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co"
@@ -49,15 +49,15 @@ Small web UI where approved users request a **Chrome extension product key**. Ke
 
 Use this to test UI changes before deploying.
 
+**Secrets file location:** from the **repository root** (where `streamlit_app.py` lives), copy **`.streamlit/secrets.toml.example`** → **`.streamlit/secrets.toml`** and edit. Then:
+
 ```bash
-cd portal
-python -m venv .venv
-.venv\Scripts\activate
+# repo root
 pip install -r requirements.txt
-copy .streamlit\secrets.toml.example .streamlit\secrets.toml
-# Edit .streamlit\secrets.toml
-streamlit run app.py
+streamlit run streamlit_app.py
 ```
+
+If you run `streamlit run portal/app.py` from the repo root without fixing paths, put **`portal/.streamlit/secrets.toml`** instead — but the documented flow is root `streamlit_app.py` + root `.streamlit/secrets.toml`.
 
 ---
 

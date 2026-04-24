@@ -20,7 +20,8 @@ Thumbs.db
 # Node modules if added later
 node_modules/
 
-# Streamlit portal — local secrets and venv
+# Streamlit — local secrets (never commit real secrets.toml)
+.streamlit/secrets.toml
 portal/.streamlit/secrets.toml
 portal/.venv/
 **/__pycache__/

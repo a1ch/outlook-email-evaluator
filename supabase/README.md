@@ -6,6 +6,8 @@ This folder configures that project and the Edge Functions: **`analyze-email`**,
 
 **401 “Unauthorized” from the proxy URL (extension token is correct):** Supabase’s gateway can enforce JWT on functions (`verify_jwt`). The Chrome extension only sends `x-extension-token`, not `Authorization: Bearer …`. This repo sets **`verify_jwt = false`** for both functions in `config.toml` so the request reaches your code; auth is still enforced via `EXTENSION_TOKEN` inside the function.
 
+**Customers:** Table **`public.customers`** stores one row per signup (email + company, tied to **`organizations`**). **`extension_tokens.customer_id`** links each product key to that customer (nullable for keys issued only from the admin UI before this existed). Unique per **`(org_id, email)`** so the Streamlit portal does not duplicate the same person in one org.
+
 ## Connect to your hosted project
 
 1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli).

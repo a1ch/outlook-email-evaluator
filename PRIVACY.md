@@ -1,10 +1,14 @@
 # Privacy Policy — Outlook Email Evaluator
 
-**Last updated: April 5, 2026**
+**Last updated: March 27, 2026**
 
 ## Overview
 
 Outlook Email Evaluator is a Chrome extension that analyzes emails in Microsoft Outlook Web for spam and phishing threats using AI. This privacy policy explains what data is collected, how it flows, and how it is protected.
+
+## Product key signup portal
+
+If you request an extension product key through a **Streamlit** (or similar) signup portal operated for this product, you may be asked to provide **first name, last name, work email, phone number, company or team name, and mailing address** (street, city, region, postal code, country; optional second address line). That information is stored in the operator’s **Supabase** database (as **customer** / licensing records) and used to **issue and manage keys**, **operate the service**, and **contact you** if needed. It is **not** sold. Access is restricted to **service administrators** and systems using the **service role** key (treat portal deployments as internal tools). For applicable legal terms, see **`TERMS_AND_CONDITIONS.md`**.
 
 ## Architecture
 
