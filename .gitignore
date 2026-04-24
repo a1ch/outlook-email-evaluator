@@ -23,3 +23,5 @@ node_modules/
 # Streamlit portal — local secrets and venv
 portal/.streamlit/secrets.toml
 portal/.venv/
+**/__pycache__/
+*.pyc
