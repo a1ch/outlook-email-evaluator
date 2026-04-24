@@ -67,6 +67,10 @@ Email content is sent to your **Supabase Edge Function** and then to **Anthropic
 - An **Anthropic API key** configured only in Supabase (not in the extension)
 - Access to **Outlook on the web** on a supported domain
 
+## Self-serve product key portal (Streamlit)
+
+Optional **`portal/`** Streamlit app: users enter email + company and receive an **extension token** (same hashing and trial/annual expiry as the admin tools). **Host it on [Streamlit Community Cloud](https://streamlit.io/cloud)** — use root **`streamlit_app.py`** and **`requirements.txt`**, with secrets as in **`portal/README.md`**. Local run is only for development.
+
 ## Enterprise deployment
 
 See **`ENTERPRISE-DEPLOYMENT.md`** for Intune, Google Admin, GPO, and self-hosted packaging notes.

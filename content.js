@@ -93,7 +93,7 @@ function getErrorUi(fullMessage) {
   return { label: 'Something went wrong', fix: 'Try again. If it repeats, reload the page and check Connection settings.' }
 }
 
-/** Short notes for odd emails so users know the app isn’t broken. */
+/** Short notes for odd emails so users know the app isn't broken. */
 function getEmailContextHints(email) {
   const subject = String(email.subject || '')
   const body = String(email.body || '')
@@ -202,6 +202,19 @@ function decodeWrappedUrl(href) {
       const decoded = u.searchParams.get('url');
       if (decoded) return decodeURIComponent(decoded);
     }
+    // Microsoft Azure SafeLink emails: *.safelink.emails.azure.net/redirect/?destination=...
+    // e.g. can.safelink.emails.azure.net, us.safelink.emails.azure.net, eu.safelink.emails.azure.net
+    if (href.includes('safelink.emails.azure.net')) {
+      const u = new URL(href);
+      const decoded = u.searchParams.get('destination') || u.searchParams.get('url') || u.searchParams.get('u');
+      if (decoded) return decodeURIComponent(decoded);
+    }
+    // Microsoft generic redirect domains: redirect.microsoft.com, go.microsoft.com, regional safelinks
+    if (/redirect\.microsoft\.com|go\.microsoft\.com|nam\d+\.safelinks|eur\d+\.safelinks/i.test(href)) {
+      const u = new URL(href);
+      const decoded = u.searchParams.get('url') || u.searchParams.get('destination') || u.searchParams.get('u');
+      if (decoded) return decodeURIComponent(decoded);
+    }
     // Trend Micro IMSVA / Email Security: various param names
     if (href.includes('trendmicro') || href.includes('imsva') || href.includes('tmase')) {
       const u = new URL(href);
@@ -231,10 +244,10 @@ function decodeWrappedUrl(href) {
       const decoded = u.searchParams.get('url') || u.searchParams.get('u');
       if (decoded) return decodeURIComponent(decoded);
     }
-    // Generic: any URL with a ?url= or ?u= param that looks like a full URL
+    // Generic: any URL with a ?url= or ?u= or ?destination= param that looks like a full URL
     if (href.includes('?')) {
       const u = new URL(href);
-      const decoded = u.searchParams.get('url') || u.searchParams.get('u');
+      const decoded = u.searchParams.get('url') || u.searchParams.get('u') || u.searchParams.get('destination');
       if (decoded && (decoded.startsWith('http') || decoded.startsWith('%68%74'))) {
         return decodeURIComponent(decoded);
       }
@@ -476,7 +489,7 @@ function extractHeaderSignals(pane) {
       }
     }
 
-    // --- On-Behalf-Of: "Sent on behalf of <name>" rendering ---
+    // --- On-Behalf-Of: "Sent on behalf of <n>" rendering ---
     const fromArea = pane.querySelector('[class*="from" i],[class*="From"],[data-testid*="from" i]');
     const fromText = fromArea ? (fromArea.innerText || '') : (pane.innerText || '');
     const oboMatch = fromText.match(/(?:on behalf of|sent on behalf of)\s+([^\n<(]+)/i);

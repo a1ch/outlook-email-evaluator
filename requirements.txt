@@ -1,0 +1,3 @@
+# Used when Streamlit runs `streamlit_app.py` from the repo root.
+streamlit>=1.28.0
+supabase>=2.4.0

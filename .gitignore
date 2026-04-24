@@ -19,3 +19,7 @@ Thumbs.db
 
 # Node modules if added later
 node_modules/
+
+# Streamlit portal — local secrets and venv
+portal/.streamlit/secrets.toml
+portal/.venv/
