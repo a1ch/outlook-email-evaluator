@@ -599,6 +599,14 @@ function revealLinks() {
 async function analyzeCurrentEmail() {
   const email = extractEmail();
   window._oe_emailHints = getEmailContextHints(email);
+
+  // Load IT security email from local settings (fallback used in showResult)
+  try {
+    chrome.storage.local.get(['itSecurityEmail'], (data) => {
+      window._oe_itSecurityEmail = (data.itSecurityEmail || '').trim();
+    });
+  } catch(e) {}
+
   setLoading();
   let isOutlookExternal = false;
   try {
@@ -762,6 +770,9 @@ function showResult(result, email) {
     ? `<div class="oe-context-hints">${hints.map(h => `<div class="oe-context-hint">ℹ️ ${escapeHtml(h)}</div>`).join('')}</div>`
     : ''
 
+  // Resolve the IT security email: local setting takes priority, then server-returned value
+  const itSecEmail = (window._oe_itSecurityEmail || '').trim() || (result.itSecurityEmail || '').trim();
+
   document.getElementById('oe-body').innerHTML = `
     ${hintsHtml}
     <div class="oe-verdict ${verdictClass}">
@@ -847,7 +858,7 @@ function showResult(result, email) {
       <div class="oe-section-title">🔗 Links in this email (${email.links.length})</div>
       ${email.links.map(l => {
           const hit = (result.lookalikeDomains || []).find(h => {
-            try { return new URL('https://' + h.domain).hostname.toLowerCase() === (l.href || '').toLowerCase().replace(/^www\\./, '') } catch { return false }
+            try { return new URL('https://' + h.domain).hostname.toLowerCase() === (l.href || '').toLowerCase().replace(/^www\./, '') } catch { return false }
           });
           return buildLinkRowHtml(l, hit || null);
         }).join('')}
@@ -863,15 +874,18 @@ function showResult(result, email) {
       <p>${escapeHtml(result.suggested_action)}</p>
     </div>
 
-
-    ${(result.itSecurityEmail && (result.verdict === 'PHISHING' || result.verdict === 'SUSPICIOUS')) ? `
     <div class="oe-report-it-section">
-      <div class="oe-report-it-title">🚨 Report this email</div>
-      <p class="oe-report-it-hint">Forward a pre-filled report to your IT security team.</p>
-      <button type="button" class="oe-report-it-btn" id="oe-report-it-btn">
-        📨 Report to IT Security
+      <div class="oe-report-it-title">🛡️ Send to Security for Review</div>
+      <p class="oe-report-it-hint">${itSecEmail
+        ? 'Forward a pre-filled report to your IT Security Department.'
+        : 'Set an IT Security email in <strong>Settings → IT Security Email</strong> to enable this.'
+      }</p>
+      <button type="button" class="oe-report-it-btn" id="oe-report-it-btn" ${itSecEmail ? '' : 'disabled style="opacity:0.5;cursor:not-allowed;"'}>
+        📨 Send to Security for Review
       </button>
-    </div>` : ''}    <div class="oe-feedback-section" id="oe-feedback-section">
+    </div>
+
+    <div class="oe-feedback-section" id="oe-feedback-section">
       <div class="oe-feedback-title">Was this analysis accurate?</div>
       <div class="oe-feedback-buttons">
         <button class="oe-feedback-btn oe-fb-false-positive" id="oe-fb-fp">
@@ -891,15 +905,16 @@ function showResult(result, email) {
   const mtBtn = document.getElementById('oe-fb-mt');
 
   fpBtn.addEventListener('click', () => showFeedbackForm('false_positive', result, email));
-  mtBtn.addEventListener('click', () => showFeedbackForm('missed_threat', result, email));﻿
-  // Report to IT button
+  mtBtn.addEventListener('click', () => showFeedbackForm('missed_threat', result, email));
+
+  // Send to Security for Review button
   const reportItBtn = document.getElementById('oe-report-it-btn');
-  if (reportItBtn && result.itSecurityEmail) {
+  if (reportItBtn && itSecEmail) {
     reportItBtn.addEventListener('click', () => {
-      const to      = encodeURIComponent(result.itSecurityEmail);
-      const subject = encodeURIComponent('[Security Report] Suspected ' + result.verdict + ': ' + (email.subject || '(no subject)').slice(0, 80));
+      const to      = encodeURIComponent(itSecEmail);
+      const subject = encodeURIComponent('[Security Report] ' + result.verdict + ': ' + (email.subject || '(no subject)').slice(0, 80));
       const bodyLines = [
-        'I am forwarding a suspicious email for your review.',
+        'I am forwarding this email for your review.',
         '',
         '--- ANALYSIS SUMMARY ---',
         'Verdict: ' + result.verdict,
@@ -930,7 +945,7 @@ function showResult(result, email) {
       reportItBtn.textContent = '\u2705 Report opened in mail client';
       reportItBtn.disabled = true;
       setTimeout(() => {
-        reportItBtn.textContent = '\uD83D\uDCE8 Report to IT Security';
+        reportItBtn.textContent = '\uD83D\uDCE8 Send to Security for Review';
         reportItBtn.disabled = false;
       }, 4000);
     });
