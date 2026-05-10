@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Outlook Email Evaluator",
+  "name": "Clarivise Scan",
   "version": "1.1",
-  "description": "Evaluates emails in Outlook for spam and phishing using AI",
+  "description": "AI-powered phishing and spam detection for Microsoft 365. Scan any email on demand with one click — get an instant plain-English verdict, risk score, and actionable advice to keep your inbox safe.",
   "permissions": [
     "activeTab",
     "storage",
@@ -48,6 +48,6 @@
     "128": "icons/icon128.png"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://*.supabase.co https://pikplhvawbhndijpkdbq.supabase.co"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://*.supabase.co"
   }
 }

@@ -4,7 +4,7 @@ const DEFAULT_PROXY_URL  = 'https://pikplhvawbhndijpkdbq.supabase.co/functions/v
 const DEFAULT_EXT_TOKEN  = 'clarivise-ee47a2b9-8f3c-41d9-b6e2-9d0f3a7c5e81'
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('Outlook Email Evaluator installed.')
+  console.log('Clarivise Scan installed.')
   // Set defaults only if the user hasn't configured them yet
   chrome.storage.local.get(['proxyUrl', 'extensionToken'], (data) => {
     const updates = {}
