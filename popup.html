@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -133,8 +133,8 @@
 </head>
 <body>
   <div class="header">
-    <h1>📧 Email Evaluator</h1>
-    <p>Spam &amp; phishing detection for Outlook</p>
+    <h1>🛡️ Clarivise Scan</h1>
+    <p>AI-powered phishing &amp; spam detection</p>
   </div>
 
   <div class="tabs">
@@ -146,16 +146,16 @@
   <!-- Connection Tab -->
   <div class="panel active" id="tab-connection">
     <div class="field">
-      <label for="proxyUrl">Supabase Proxy URL</label>
+      <label for="proxyUrl">Proxy URL</label>
       <input type="text" id="proxyUrl" placeholder="https://xxxx.supabase.co/functions/v1/analyze-email" />
-      <p class="hint">The URL of your deployed Supabase Edge Function.</p>
+      <p class="hint">The URL of your deployed analysis function.</p>
     </div>
 
     <div class="field">
       <label for="extensionToken">Extension Token</label>
       <input type="password" id="extensionToken" placeholder="your-secret-token" />
       <button class="show-toggle" id="toggleToken">Show token</button>
-      <p class="hint">The shared secret set on your Supabase function (<code>EXTENSION_TOKEN</code>).</p>
+      <p class="hint">The shared secret configured on your analysis function.</p>
     </div>
 
     <button class="save-btn" id="saveConnection">Save &amp; Test Connection</button>
@@ -172,8 +172,8 @@
 
 <div class="field">
       <label for="tenantDomain">Your Organization Domain</label>
-      <input type="text" id="tenantDomain" placeholder="e.g. streamflo.com" />
-      <p class="hint">Your company's email domain (e.g. contoso.com). Sent to the analysis server so the AI can treat SharePoint and internal senders correctly.</p>
+      <input type="text" id="tenantDomain" placeholder="e.g. contoso.com" />
+      <p class="hint">Your company's email domain. Sent to the analysis server so the AI can treat internal senders correctly.</p>
     </div>
 
     <div class="field">
@@ -190,13 +190,13 @@
   <div class="panel" id="tab-help">
     <ul class="how-to">
       <li>Enter your <b>Proxy URL</b> and <b>Extension Token</b> in the Connection tab</li>
-      <li>Open <b>outlook.cloud.microsoft</b> in Chrome</li>
+      <li>Open <b>outlook.cloud.microsoft</b> in Chrome or Edge</li>
       <li>Click or select an email</li>
       <li>Use the sidebar on the right</li>
       <li>Click <b>Analyze Email</b></li>
     </ul>
     <br>
-    <p class="hint">The proxy keeps your Anthropic API key secure on the server — it never touches your browser.</p>
+    <p class="hint">The proxy keeps your API key secure on the server — it never touches your browser.</p>
     <br>
     <p class="hint">Rate limit: 1 analysis per 5 seconds.</p>
     <br>
