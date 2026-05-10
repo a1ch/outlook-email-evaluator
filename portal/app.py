@@ -271,7 +271,7 @@ def render_portal_landing(p: dict[str, str]) -> None:
   <span class="dot">·</span>
   <span><strong>Two layers</strong> — on-demand analysis and automatic mail transport protection</span>
   <span class="dot">·</span>
-  <span><strong>Undercuts the competition</strong> — Proofpoint starts at $3, Mimecast at $5. We're below both.</span>
+  <span><strong>AI-powered</strong> — real-time phishing, spam, and BEC detection</span>
 </div>""", unsafe_allow_html=True)
 
     st.markdown('<p class="saas-section-title" style="margin-top:0.5rem;">Our products</p>', unsafe_allow_html=True)
@@ -292,7 +292,7 @@ def render_portal_landing(p: dict[str, str]) -> None:
       <li>Send to IT Security button</li>
       <li>Works inside Outlook — no new app</li>
     </ul>
-    <div class="price-row"><strong>$3–5 / user / month (USD)</strong> &nbsp;·&nbsp; Free 15-day trial · Annual license · Chrome extension</div>
+    <div class="price-row"><strong>From $5 / user / month (USD)</strong> &nbsp;·&nbsp; Free 15-day trial · Annual license · Chrome extension</div>
   </div>
 
   <div class="product-card shield">
@@ -307,7 +307,7 @@ def render_portal_landing(p: dict[str, str]) -> None:
       <li>Admin dashboard with scan log</li>
       <li>Daily AI security summary email</li>
     </ul>
-    <div class="price-row"><strong>$8–12 / user / month (USD)</strong> &nbsp;·&nbsp; Contact us for pricing · M365 mail transport integration</div>
+    <div class="price-row"><strong>From $12 / user / month (USD)</strong> &nbsp;·&nbsp; Contact us for pricing · M365 mail transport integration</div>
   </div>
 
 </div>""", unsafe_allow_html=True)
@@ -329,7 +329,7 @@ def render_portal_landing(p: dict[str, str]) -> None:
   <div class="saas-step"><div class="n">4</div><h4>Daily summary</h4><p>IT receives a daily email with all verdicts, threat counts, and flagged senders.</p></div>
 </div>""", unsafe_allow_html=True)
 
-    st.markdown('<div style="margin:1.5rem 0 .75rem;"><p class="saas-section-title">Pricing</p><h2 class="saas-h2" style="margin-top:0">Simple per-user pricing in USD — below the competition</h2></div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin:1.5rem 0 .75rem;"><p class="saas-section-title">Pricing</p><h2 class="saas-h2" style="margin-top:0">Simple per-user pricing in USD</h2></div>', unsafe_allow_html=True)
     st.markdown("""
 <div class="saas-pricing">
   <div class="saas-price-card">
@@ -340,13 +340,13 @@ def render_portal_landing(p: dict[str, str]) -> None:
   <div class="saas-price-card popular">
     <div class="tag">Most popular</div>
     <h3>📧 Scan — Annual</h3>
-    <div class="price">$3–5 / user / mo</div>
-    <p class="sub">One product key per user, 365-day license. On-demand AI analysis in Outlook on the web. Undercuts Proofpoint Essentials.</p>
+    <div class="price">From $5 / user / mo</div>
+    <p class="sub">One product key per user, 365-day license. On-demand AI analysis in Outlook on the web.</p>
   </div>
   <div class="saas-price-card">
     <h3>🛡️ Shield</h3>
-    <div class="price">$8–12 / user / mo</div>
-    <p class="sub">Full mail transport protection. Automatic analysis of 100% of inbound email. Well below Mimecast. Contact us for a quote.</p>
+    <div class="price">From $12 / user / mo</div>
+    <p class="sub">Full mail transport protection. Automatic analysis of 100% of inbound email. Contact us for a quote.</p>
   </div>
 </div>""", unsafe_allow_html=True)
 
@@ -361,9 +361,7 @@ def render_portal_landing(p: dict[str, str]) -> None:
 | Admin dashboard | ❌ | ✅ Full scan log + quarantine queue |
 | Daily summary email | ❌ | ✅ |
 | Best for | Individual users, small teams | Organizations, IT departments |
-| Price (USD) | $3–5 / user / mo | $8–12 / user / mo |
-| vs Proofpoint ($3–6) | ✅ Competitive | — |
-| vs Mimecast ($5–15) | — | ✅ Competitive |
+| Price (USD) | From $5 / user / mo | From $12 / user / mo |
         """)
 
     with st.expander("How the AI analysis works", expanded=False):
@@ -372,7 +370,7 @@ Both products use **Claude AI** (Anthropic) via a secure **Supabase Edge Functio
 
 **What's analyzed:** sender domain vs display name, link destinations vs display text, attachment names and extensions, body text patterns (urgency, credential requests, gift card asks), Reply-To vs From domain mismatches, lookalike domain detection (typosquatting).
 
-**Cost efficiency:** both products use **prompt caching** — the analysis system prompt is cached at Anthropic, reducing per-email AI cost by ~40% on input tokens. This is how we price below Proofpoint and Mimecast while maintaining healthy margins.
+**Cost efficiency:** both products use **prompt caching** — the analysis system prompt is cached at Anthropic, reducing per-email AI cost by ~40% on input tokens.
         """)
 
 
