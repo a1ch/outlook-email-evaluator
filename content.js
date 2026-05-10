@@ -1,4 +1,4 @@
-// Outlook Email Evaluator - Content Script
+﻿// Clarivise Scan - Content Script
 let sidebar = null;
 let lastEmailId = null;
 let observer = null;
@@ -123,10 +123,10 @@ function createSidebar() {
   sidebar = document.createElement('div');
   sidebar.id = 'oe-sidebar';
   sidebar.innerHTML = `
-    <div id="oe-tab"><span>📧</span><span>EVALUATOR</span></div>
+    <div id="oe-tab"><span>🛡️</span><span>SCAN</span></div>
     <div id="oe-panel">
       <div id="oe-header">
-        <span>📧 Email Evaluator</span>
+        <span>🛡️ Clarivise Scan</span>
         <div style="display:flex;gap:4px;align-items:center;">
           <button id="oe-dark-toggle" title="Toggle dark mode">🌙</button>
           <button id="oe-close">&#x27E9;</button>
@@ -938,7 +938,7 @@ function showResult(result, email) {
         '--- LINKS IN EMAIL ---',
         ...(email.links || []).map(l => '* ' + l.display + ' -> ' + (l.fullUrl || l.href || '')),
         '',
-        'Reported via Outlook Email Evaluator.',
+        'Reported via Clarivise Scan.',
       ];
       const body = encodeURIComponent(bodyLines.join('\n'));
       window.open('mailto:' + to + '?subject=' + subject + '&body=' + body, '_blank');
