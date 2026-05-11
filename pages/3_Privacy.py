@@ -1,6 +1,6 @@
 """
-Privacy Policy page — pages/3_Privacy.py
+Privacy Policy page
 """
-from portal.app import run_privacy_page
+from streamlit_app import run_privacy_page
 
 run_privacy_page()
