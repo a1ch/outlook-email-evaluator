@@ -1,7 +1,6 @@
 """
-Terms and Conditions page — pages/2_Terms.py
-Rendered inline in Streamlit so users can read T&C without leaving the app.
+Terms and Conditions page
 """
-from portal.app import run_terms_page
+from streamlit_app import run_terms_page
 
 run_terms_page()
