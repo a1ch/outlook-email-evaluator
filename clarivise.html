@@ -1,12 +1,585 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clarivise Test</title>
+<title>Clarivise — AI-Powered Email Security</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue: #0ea5e9;
+  --blue2: #38bdf8;
+  --blue3: #0055a4;
+  --accent: #00d4ff;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --green: #10b981;
+}
+[data-theme="dark"] {
+  --bg: #060d1a;
+  --surface: #0a1628;
+  --surface2: #0f1f38;
+  --heading: #ffffff;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --border: rgba(14,165,233,0.15);
+  --border-strong: rgba(14,165,233,0.25);
+}
+[data-theme="light"] {
+  --bg: #f0f6ff;
+  --surface: #ffffff;
+  --surface2: #e8f1fb;
+  --heading: #0f172a;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: rgba(14,165,233,0.18);
+  --border-strong: rgba(14,165,233,0.3);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-weight:300;overflow-x:hidden;transition:background 0.35s,color 0.35s}
+[data-theme="dark"] body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(14,165,233,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.page{display:none}.page.active{display:block}
+.theme-toggle{width:52px;height:28px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;cursor:pointer;position:relative;transition:background 0.3s;flex-shrink:0}
+.theme-toggle::before{content:'';position:absolute;width:20px;height:20px;background:var(--blue);border-radius:50%;top:3px;left:4px;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+[data-theme="light"] .theme-toggle::before{transform:translateX(22px)}
+.theme-icon{position:absolute;font-size:11px;top:50%;transform:translateY(-50%);pointer-events:none;transition:opacity 0.3s}
+.theme-icon.moon{left:6px}.theme-icon.sun{right:6px;opacity:0.35}
+[data-theme="light"] .theme-icon.moon{opacity:0.35}[data-theme="light"] .theme-icon.sun{opacity:1}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 48px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);border-bottom:1px solid var(--border);background:rgba(6,13,26,0.88);transition:background 0.35s}
+[data-theme="light"] nav{background:rgba(240,246,255,0.92)}
+.nav-logo{font-family:'Outfit',sans-serif;font-weight:600;font-size:20px;letter-spacing:-0.3px;color:var(--heading);text-decoration:none;display:flex;align-items:center;gap:10px;cursor:pointer}
+.nav-logo-icon{width:26px;height:26px;background:var(--blue);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)}
+.nav-right{display:flex;align-items:center;gap:28px}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:400;transition:color 0.2s;cursor:pointer}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{background:var(--blue);color:white;padding:9px 20px;border-radius:4px;font-size:13px;font-weight:500;text-decoration:none;transition:background 0.2s,transform 0.1s;cursor:pointer}
+.nav-cta:hover{background:var(--blue2);transform:translateY(-1px)}
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:120px 48px 80px;z-index:2;overflow:hidden}
+.hero-glow{position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(14,165,233,0.1) 0%,transparent 70%);top:-150px;right:-150px;pointer-events:none}
+[data-theme="light"] .hero-glow{background:radial-gradient(circle,rgba(14,165,233,0.06) 0%,transparent 70%)}
+.hero-content{max-width:620px;position:relative}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.25);padding:6px 14px;border-radius:100px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--blue2);text-transform:uppercase;margin-bottom:32px;animation:fadeUp 0.6s ease both}
+.badge-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.8)}}
+h1{font-family:'Outfit',sans-serif;font-weight:600;font-size:clamp(46px,6.5vw,80px);line-height:1.0;letter-spacing:-2px;color:var(--heading);margin-bottom:28px;animation:fadeUp 0.6s 0.1s ease both}
+h1 em{font-style:normal;color:var(--blue)}
+.hero-sub{font-size:17px;line-height:1.75;color:var(--muted);max-width:500px;margin-bottom:44px;font-weight:300;animation:fadeUp 0.6s 0.2s ease both}
+.hero-actions{display:flex;gap:14px;align-items:center;animation:fadeUp 0.6s 0.3s ease both}
+.btn-primary{background:var(--blue);color:white;padding:13px 26px;border-radius:4px;font-size:15px;font-weight:500;text-decoration:none;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif;cursor:pointer;border:none}
+.btn-primary:hover{background:var(--blue2);transform:translateY(-2px);box-shadow:0 8px 28px rgba(14,165,233,0.3)}
+.btn-ghost{color:var(--muted);padding:13px 26px;border-radius:4px;font-size:15px;font-weight:400;text-decoration:none;transition:color 0.2s,border-color 0.2s;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);font-family:'Outfit',sans-serif;cursor:pointer}
+.btn-ghost:hover{color:var(--text);border-color:var(--border-strong)}
+.hero-visual{position:absolute;right:48px;top:50%;transform:translateY(-50%);width:440px;animation:fadeUp 0.8s 0.2s ease both}
+.shield-visual{position:relative;width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.shield-ring{position:absolute;border-radius:50%;border:1px solid;animation:spin linear infinite}
+.shield-ring:nth-child(1){width:340px;height:340px;border-color:rgba(14,165,233,0.1);animation-duration:30s}
+.shield-ring:nth-child(2){width:265px;height:265px;border-color:rgba(14,165,233,0.14);border-style:dashed;animation-duration:20s;animation-direction:reverse}
+.shield-ring:nth-child(3){width:190px;height:190px;border-color:rgba(0,212,255,0.18);animation-duration:15s}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.shield-core{position:relative;z-index:2;width:104px;height:104px;background:linear-gradient(135deg,var(--blue3),var(--blue));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 50px rgba(14,165,233,0.4)}
+.shield-check{color:white;font-size:34px;font-weight:500}
+.scan-line{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scanLine 3s ease-in-out infinite;opacity:0.45}
+@keyframes scanLine{0%{top:10%;opacity:0}10%{opacity:0.45}90%{opacity:0.45}100%{top:90%;opacity:0}}
+.threat-tag{position:absolute;background:var(--surface);border:1px solid var(--border);padding:7px 13px;border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;display:flex;align-items:center;gap:8px;color:var(--text);animation:float 4s ease-in-out infinite}
+.threat-tag:nth-child(5){top:15%;right:-20px;animation-delay:0s}
+.threat-tag:nth-child(6){bottom:25%;left:-30px;animation-delay:1.5s}
+.threat-tag:nth-child(7){top:55%;right:-40px;animation-delay:0.8s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.tag-dot{width:6px;height:6px;border-radius:50%}
+.tag-dot.phishing{background:var(--red);box-shadow:0 0 6px var(--red)}
+.tag-dot.spam{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.tag-dot.safe{background:var(--green);box-shadow:0 0 6px var(--green)}
+.stats-bar{position:relative;z-index:2;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface);padding:32px 48px;display:grid;grid-template-columns:repeat(4,1fr)}
+.stat-item{padding:0 28px;border-right:1px solid var(--border)}
+.stat-item:first-child{padding-left:0}.stat-item:last-child{border-right:none}
+.stat-num{font-family:'Outfit',sans-serif;font-weight:600;font-size:32px;color:var(--heading);letter-spacing:-1px;line-height:1;margin-bottom:6px}
+.stat-num span{color:var(--blue)}.stat-label{font-size:13px;color:var(--muted);font-weight:300}
+section{position:relative;z-index:2;padding:110px 48px}
+.alt-bg{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.section-label{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;margin-bottom:14px}
+h2{font-family:'Outfit',sans-serif;font-weight:600;font-size:clamp(32px,4vw,48px);letter-spacing:-1.5px;color:var(--heading);line-height:1.08;margin-bottom:18px}
+.section-sub{font-size:16px;color:var(--muted);line-height:1.75;max-width:540px;font-weight:300}
+.products-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:60px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.product-card{background:var(--surface);padding:44px;transition:background 0.3s;position:relative;overflow:hidden}
+.product-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--blue),transparent);opacity:0;transition:opacity 0.3s}
+.product-card:hover{background:var(--surface2)}.product-card:hover::before{opacity:1}
+.product-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.2);padding:4px 12px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;color:var(--blue2);text-transform:uppercase;margin-bottom:22px}
+.product-name{font-family:'Outfit',sans-serif;font-weight:600;font-size:28px;letter-spacing:-0.5px;color:var(--heading);margin-bottom:6px}
+.product-tagline{font-size:12px;color:var(--blue);font-family:'DM Mono',monospace;margin-bottom:18px}
+.product-desc{font-size:14px;color:var(--muted);line-height:1.75;margin-bottom:28px;font-weight:300}
+.product-features{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:32px}
+.product-features li{font-size:14px;color:var(--text);display:flex;align-items:center;gap:10px;font-weight:300}
+.feature-check{width:17px;height:17px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.28);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:var(--green)}
+.product-price{font-family:'Outfit',sans-serif;font-weight:600;font-size:24px;color:var(--heading);letter-spacing:-0.5px}
+.product-price span{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--muted);font-weight:300;letter-spacing:0}
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:60px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.how-card{background:var(--surface);padding:36px}
+.how-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--blue);letter-spacing:2px;margin-bottom:18px}
+.how-icon{width:44px;height:44px;background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:18px}
+.how-title{font-family:'Outfit',sans-serif;font-weight:500;font-size:18px;color:var(--heading);letter-spacing:-0.2px;margin-bottom:10px}
+.how-desc{font-size:13px;color:var(--muted);line-height:1.7;font-weight:300}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:60px}
+.pricing-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;position:relative;transition:border-color 0.3s,transform 0.2s}
+.pricing-card:hover{border-color:var(--border-strong);transform:translateY(-4px)}
+.pricing-card.featured{border-color:var(--blue);background:var(--surface2)}
+.pricing-card.featured::before{content:'MOST POPULAR';position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--blue);color:white;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;padding:4px 16px;border-radius:0 0 8px 8px}
+.pricing-segment{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;margin-bottom:16px}
+.pricing-name{font-family:'Outfit',sans-serif;font-weight:600;font-size:21px;color:var(--heading);letter-spacing:-0.3px;margin-bottom:4px}
+.pricing-range{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:20px}
+.pricing-prices{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.pricing-row{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.pricing-product{color:var(--muted);font-weight:300}
+.pricing-amount{font-family:'DM Mono',monospace;font-size:12px;color:var(--text)}
+.pricing-features{list-style:none;display:flex;flex-direction:column;gap:8px}
+.pricing-features li{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;font-weight:300}
+.trust-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:60px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.trust-card{background:var(--surface);padding:32px}
+.trust-icon{font-size:26px;margin-bottom:14px}
+.trust-title{font-family:'Outfit',sans-serif;font-weight:500;font-size:15px;color:var(--heading);margin-bottom:8px}
+.trust-desc{font-size:13px;color:var(--muted);line-height:1.6;font-weight:300}
+.cta-section{text-align:center;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.cta-section::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(14,165,233,0.06) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%)}
+.cta-section h2{margin:0 auto 18px;max-width:560px}
+.cta-section .section-sub{margin:0 auto 36px;text-align:center}
+.cta-actions{display:flex;gap:14px;justify-content:center;position:relative;z-index:1}
+.signup-page{padding:120px 48px 80px;display:flex;align-items:flex-start;justify-content:center;min-height:100vh;gap:80px}
+.signup-left{max-width:420px;padding-top:20px}
+.signup-left h1{font-family:'Outfit',sans-serif;font-weight:600;font-size:40px;letter-spacing:-1.5px;color:var(--heading);line-height:1.05;margin-bottom:16px}
+.signup-left p{font-size:15px;color:var(--muted);line-height:1.75;font-weight:300;margin-bottom:32px}
+.trial-features{list-style:none;display:flex;flex-direction:column;gap:12px}
+.trial-features li{font-size:14px;color:var(--text);display:flex;align-items:center;gap:12px;font-weight:300}
+.signup-form-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:420px;flex-shrink:0}
+.signup-form-wrap h2{font-family:'Outfit',sans-serif;font-weight:600;font-size:22px;letter-spacing:-0.5px;color:var(--heading);margin-bottom:6px}
+.form-sub{font-size:13px;color:var(--muted);margin-bottom:28px;font-weight:300}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px;letter-spacing:0.3px}
+.form-input{width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:'Outfit',sans-serif;color:var(--text);outline:none;transition:border-color 0.2s}
+.form-input:focus{border-color:var(--blue)}
+.form-input::placeholder{color:var(--muted);opacity:0.6}
+.form-terms{font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.6;font-weight:300}
+.form-terms a{color:var(--blue);text-decoration:none;cursor:pointer}
+.form-terms a:hover{text-decoration:underline}
+.btn-submit{width:100%;padding:13px;background:var(--blue);color:white;border:none;border-radius:6px;font-size:15px;font-weight:500;font-family:'Outfit',sans-serif;cursor:pointer;transition:background 0.2s,transform 0.1s}
+.btn-submit:hover{background:var(--blue2);transform:translateY(-1px)}
+.btn-submit:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+.form-error{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:10px 14px;font-size:13px;color:#ef4444;margin-bottom:16px;display:none}
+.form-error.visible{display:block}
+.form-success{display:none;text-align:center;padding:20px 0}
+.form-success.visible{display:block}
+.success-icon{font-size:48px;margin-bottom:16px}
+.success-title{font-family:'Outfit',sans-serif;font-weight:600;font-size:22px;color:var(--heading);letter-spacing:-0.5px;margin-bottom:10px}
+.success-sub{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px;font-weight:300}
+.token-box{background:var(--bg);border:1px solid var(--border-strong);border-radius:8px;padding:14px 16px;font-family:'DM Mono',monospace;font-size:12px;color:var(--blue2);word-break:break-all;margin-bottom:16px;text-align:left}
+.token-label{font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;font-family:'DM Mono',monospace}
+.trial-countdown{display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:100px;padding:6px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--green);margin-bottom:20px}
+.legal-page{padding:120px 48px 80px;max-width:800px;margin:0 auto}
+.legal-page h1{font-family:'Outfit',sans-serif;font-weight:600;font-size:36px;letter-spacing:-1px;color:var(--heading);margin-bottom:8px}
+.legal-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:48px;letter-spacing:1px}
+.legal-page h2{font-family:'Outfit',sans-serif;font-weight:600;font-size:18px;letter-spacing:-0.3px;color:var(--heading);margin:36px 0 12px}
+.legal-page p{font-size:14px;color:var(--text);line-height:1.8;margin-bottom:14px;font-weight:300}
+.legal-page ul{margin:0 0 14px 20px}
+.legal-page li{font-size:14px;color:var(--text);line-height:1.8;margin-bottom:6px;font-weight:300}
+.legal-page a{color:var(--blue);text-decoration:none}
+.legal-page a:hover{text-decoration:underline}
+.legal-notice{background:rgba(14,165,233,0.06);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:var(--muted);line-height:1.7;font-style:italic}
+.legal-divider{border:none;border-top:1px solid var(--border);margin:40px 0}
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:13px}
+th{background:var(--surface2);color:var(--heading);font-weight:500;padding:10px 14px;text-align:left;border:1px solid var(--border)}
+td{color:var(--text);padding:9px 14px;border:1px solid var(--border);font-weight:300;vertical-align:top}
+footer{position:relative;z-index:2;padding:36px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
+.footer-logo{font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;color:var(--heading);cursor:pointer}
+.footer-links{display:flex;gap:24px;list-style:none}
+.footer-links a{color:var(--muted);text-decoration:none;font-size:13px;transition:color 0.2s;cursor:pointer}
+.footer-links a:hover{color:var(--text)}
+.footer-copy{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity 0.7s ease,transform 0.7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+@media(max-width:1024px){
+  .hero-visual{display:none}
+  .products-grid,.how-grid,.trust-grid{grid-template-columns:1fr}
+  .pricing-grid{grid-template-columns:1fr}
+  .stats-bar{grid-template-columns:1fr 1fr;gap:28px;padding:28px 24px}
+  nav{padding:18px 24px}.nav-links{display:none}
+  section{padding:80px 24px}.hero{padding:110px 24px 70px}
+  footer{flex-direction:column;gap:18px;text-align:center;padding:36px 24px}
+  .legal-page{padding:110px 24px 60px}
+  .signup-page{flex-direction:column;padding:100px 24px 60px;align-items:center}
+  .signup-left{max-width:100%}.signup-form-wrap{width:100%}
+}
+</style>
 </head>
-<body style="background:#060d1a;color:white;font-family:sans-serif;padding:40px">
-<h1>Clarivise site loading...</h1>
-<p>Full site coming shortly.</p>
+<body>
+<nav>
+  <a class="nav-logo" onclick="showPage('home')">
+    <div class="nav-logo-icon"></div>Clarivise
+  </a>
+  <div class="nav-right">
+    <ul class="nav-links">
+      <li><a onclick="showPage('home');scrollTo('#products')">Products</a></li>
+      <li><a onclick="showPage('home');scrollTo('#pricing')">Pricing</a></li>
+      <li><a onclick="showPage('privacy')">Privacy</a></li>
+      <li><a onclick="showPage('terms')">Terms</a></li>
+    </ul>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <span class="theme-icon moon">🌙</span>
+      <span class="theme-icon sun">☀️</span>
+    </button>
+    <a class="nav-cta" onclick="showPage('signup')">Start Free Trial →</a>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><div class="badge-dot"></div>AI-Native Email Security</div>
+    <h1>Stop phishing<br><em>before</em> it lands.</h1>
+    <p class="hero-sub">Clarivise uses AI to analyze every inbound email for threats — explaining risks in plain English so your team stays protected and gets smarter about security.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" onclick="showPage('signup')">Start 14-day free trial →</a>
+      <a class="btn-ghost" onclick="scrollTo('#pricing')">View pricing</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="shield-visual">
+      <div class="shield-ring"></div><div class="shield-ring"></div><div class="shield-ring"></div>
+      <div class="scan-line"></div>
+      <div class="shield-core"><div class="shield-check">✓</div></div>
+      <div class="threat-tag"><div class="tag-dot phishing"></div>PHISHING DETECTED</div>
+      <div class="threat-tag"><div class="tag-dot safe"></div>VERIFIED SAFE</div>
+      <div class="threat-tag"><div class="tag-dot spam"></div>SPAM BLOCKED</div>
+    </div>
+  </div>
+</section>
+<div class="stats-bar">
+  <div class="stat-item reveal"><div class="stat-num">91<span>%</span></div><div class="stat-label">of cyberattacks start with email</div></div>
+  <div class="stat-item reveal"><div class="stat-num">$4.9<span>M</span></div><div class="stat-label">average breach cost in 2024</div></div>
+  <div class="stat-item reveal"><div class="stat-num">$8<span>B+</span></div><div class="stat-label">global email security market</div></div>
+  <div class="stat-item reveal"><div class="stat-num">1<span>in 3</span></div><div class="stat-label">employees can't spot phishing</div></div>
+</div>
+<section id="products">
+  <div class="section-label">Two products. One platform.</div>
+  <h2>Protection at every level<br>of your organization.</h2>
+  <p class="section-sub">Whether you need on-demand scanning or full pipeline automation, Clarivise has you covered.</p>
+  <div class="products-grid">
+    <div class="product-card reveal">
+      <div class="product-tag"><div class="badge-dot"></div>Available Now</div>
+      <div class="product-name">Clarivise Scan</div>
+      <div class="product-tagline">// On-demand email intelligence</div>
+      <p class="product-desc">A Chrome extension that puts AI-powered phishing detection directly in Outlook. Users scan emails they choose and get instant plain-English verdicts — building security awareness while staying protected.</p>
+      <ul class="product-features">
+        <li><div class="feature-check">✓</div>Installs in 60 seconds, zero IT required</li>
+        <li><div class="feature-check">✓</div>Plain-English threat explanations</li>
+        <li><div class="feature-check">✓</div>Trains users while protecting them</li>
+        <li><div class="feature-check">✓</div>Works on outlook.cloud.microsoft</li>
+      </ul>
+      <div class="product-price">From $5 <span>/ user / month</span></div>
+    </div>
+    <div class="product-card reveal">
+      <div class="product-tag"><div class="badge-dot"></div>Available Now</div>
+      <div class="product-name">Clarivise Shield</div>
+      <div class="product-tagline">// Automated pipeline protection</div>
+      <p class="product-desc">Enterprise-grade email security that scans every inbound message automatically — post spam filter, pre-inbox. Tags threats before they reach your team, no user action required.</p>
+      <ul class="product-features">
+        <li><div class="feature-check">✓</div>Scans 100% of inbound email automatically</li>
+        <li><div class="feature-check">✓</div>Plugs into M365 mail flow in minutes</li>
+        <li><div class="feature-check">✓</div>Quarantine, tag, or deliver with AI risk score</li>
+        <li><div class="feature-check">✓</div>Competes with Proofpoint at a fraction of cost</li>
+      </ul>
+      <div class="product-price">From $12 <span>/ user / month</span></div>
+    </div>
+  </div>
+</section>
+<section class="alt-bg">
+  <div class="section-label">How it works</div>
+  <h2>AI that explains itself.</h2>
+  <p class="section-sub">Unlike black-box security tools, Clarivise tells your team exactly what it found and why.</p>
+  <div class="how-grid">
+    <div class="how-card reveal"><div class="how-num">// 01</div><div class="how-icon">📨</div><div class="how-title">Email arrives</div><p class="how-desc">Scan lets users choose which emails to check. Shield automatically intercepts every inbound message before it hits the inbox.</p></div>
+    <div class="how-card reveal"><div class="how-num">// 02</div><div class="how-icon">🧠</div><div class="how-title">AI analyzes it</div><p class="how-desc">Our AI engine reads the sender, content, links, and attachments — resolving short URLs and checking for domain mismatches and social engineering patterns.</p></div>
+    <div class="how-card reveal"><div class="how-num">// 03</div><div class="how-icon">🛡️</div><div class="how-title">Verdict delivered</div><p class="how-desc">You get a clear verdict — SAFE, SUSPICIOUS, SPAM, or PHISHING — with a plain-English explanation and exactly what to do next.</p></div>
+  </div>
+</section>
+<section id="pricing">
+  <div class="section-label">Pricing</div>
+  <h2>Transparent pricing.<br>No surprises.</h2>
+  <p class="section-sub">Start with Scan and expand to Shield as your team grows. Volume discounts available for MSPs and enterprise.</p>
+  <div class="pricing-grid">
+    <div class="pricing-card reveal">
+      <div class="pricing-segment">SMB</div>
+      <div class="pricing-name">Small Business</div>
+      <div class="pricing-range">10 – 200 employees</div>
+      <div class="pricing-prices">
+        <div class="pricing-row"><div class="pricing-product">Clarivise Scan</div><div class="pricing-amount">$5 / user / mo</div></div>
+        <div class="pricing-row"><div class="pricing-product">Clarivise Shield</div><div class="pricing-amount">$10 / user / mo</div></div>
+      </div>
+      <ul class="pricing-features">
+        <li><div class="feature-check">✓</div>Both products available</li>
+        <li><div class="feature-check">✓</div>No IT infrastructure required</li>
+        <li><div class="feature-check">✓</div>Email support</li>
+      </ul>
+    </div>
+    <div class="pricing-card featured reveal">
+      <div class="pricing-segment">Mid-Market</div>
+      <div class="pricing-name">Mid-Market</div>
+      <div class="pricing-range">200 – 1,000 employees</div>
+      <div class="pricing-prices">
+        <div class="pricing-row"><div class="pricing-product">Clarivise Scan</div><div class="pricing-amount">$5 / user / mo</div></div>
+        <div class="pricing-row"><div class="pricing-product">Clarivise Shield</div><div class="pricing-amount">$12 / user / mo</div></div>
+      </div>
+      <ul class="pricing-features">
+        <li><div class="feature-check">✓</div>Both products available</li>
+        <li><div class="feature-check">✓</div>Admin dashboard</li>
+        <li><div class="feature-check">✓</div>Priority support</li>
+        <li><div class="feature-check">✓</div>Custom threat rules</li>
+      </ul>
+    </div>
+    <div class="pricing-card reveal">
+      <div class="pricing-segment">Enterprise / MSP</div>
+      <div class="pricing-name">Enterprise</div>
+      <div class="pricing-range">Volume + white-label</div>
+      <div class="pricing-prices">
+        <div class="pricing-row"><div class="pricing-product">Clarivise Scan</div><div class="pricing-amount">Contact us</div></div>
+        <div class="pricing-row"><div class="pricing-product">Clarivise Shield</div><div class="pricing-amount">Contact us</div></div>
+      </div>
+      <ul class="pricing-features">
+        <li><div class="feature-check">✓</div>White-label options</li>
+        <li><div class="feature-check">✓</div>MSP channel pricing</li>
+        <li><div class="feature-check">✓</div>Dedicated support</li>
+        <li><div class="feature-check">✓</div>SLA guarantee</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<section class="alt-bg">
+  <div class="section-label">Why Clarivise</div>
+  <h2>Built different.</h2>
+  <p class="section-sub">Not a legacy product retrofitted with ML. AI-native from day one — designed to compete with Proofpoint and Mimecast at a fraction of the price.</p>
+  <div class="trust-grid">
+    <div class="trust-card reveal"><div class="trust-icon">🎯</div><div class="trust-title">AI-Native Detection</div><p class="trust-desc">Context-aware analysis that understands intent and social engineering — not just keyword matching.</p></div>
+    <div class="trust-card reveal"><div class="trust-icon">📚</div><div class="trust-title">Trains Users</div><p class="trust-desc">Plain-English explanations turn every blocked threat into a security lesson. Incumbents don't do this.</p></div>
+    <div class="trust-card reveal"><div class="trust-icon">⚡</div><div class="trust-title">Instant Deployment</div><p class="trust-desc">Scan installs in 60 seconds. Shield plugs into M365 mail flow with no infrastructure changes.</p></div>
+    <div class="trust-card reveal"><div class="trust-icon">💰</div><div class="trust-title">SMB-First Pricing</div><p class="trust-desc">Enterprise-grade protection at prices that work for organizations Proofpoint ignores entirely.</p></div>
+  </div>
+</section>
+<section id="cta" class="cta-section">
+  <div class="section-label" style="text-align:center">Get started</div>
+  <h2>Ready to protect<br>your inbox?</h2>
+  <p class="section-sub">Both Clarivise Scan and Shield are live today. Start with Scan — zero procurement, installs in 60 seconds.</p>
+  <div class="cta-actions">
+    <a class="btn-primary" onclick="showPage('signup')">Start 14-day free trial →</a>
+    <a class="btn-ghost" onclick="scrollTo('#products')">Learn more</a>
+  </div>
+</section>
+</div>
+
+<!-- SIGNUP -->
+<div class="page" id="page-signup">
+<div class="signup-page">
+  <div class="signup-left">
+    <div class="section-label">Free Trial</div>
+    <h1>14 days.<br>No credit card.<br>Full access.</h1>
+    <p>Get Clarivise Scan up and running in your inbox in 60 seconds. Cancel anytime.</p>
+    <ul class="trial-features">
+      <li><div class="feature-check">✓</div>Full access to Clarivise Scan for 14 days</li>
+      <li><div class="feature-check">✓</div>Installs in 60 seconds in Chrome or Edge</li>
+      <li><div class="feature-check">✓</div>Scans emails in Outlook Web on demand</li>
+      <li><div class="feature-check">✓</div>Plain-English phishing and spam verdicts</li>
+      <li><div class="feature-check">✓</div>No credit card required</li>
+      <li><div class="feature-check">✓</div>Up to 25 users during trial</li>
+    </ul>
+  </div>
+  <div class="signup-form-wrap">
+    <div id="signup-form-inner">
+      <h2>Start your free trial</h2>
+      <p class="form-sub">Use your work email — personal addresses are not supported.</p>
+      <div class="form-error" id="signup-error"></div>
+      <div class="form-group">
+        <label class="form-label" for="f-name">Full name</label>
+        <input class="form-input" type="text" id="f-name" placeholder="Jane Smith" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="f-email">Work email</label>
+        <input class="form-input" type="email" id="f-email" placeholder="jane@yourcompany.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="f-company">Company name</label>
+        <input class="form-input" type="text" id="f-company" placeholder="Acme Corp" autocomplete="organization">
+      </div>
+      <p class="form-terms">By starting a trial you agree to the <a onclick="showPage('terms')">Terms of Service</a> and <a onclick="showPage('privacy')">Privacy Policy</a>. Your trial runs for 14 days from today.</p>
+      <button class="btn-submit" id="signup-btn" onclick="submitTrial()">Start free trial →</button>
+    </div>
+    <div class="form-success" id="signup-success">
+      <div class="success-icon">🛡️</div>
+      <div class="success-title">You're in!</div>
+      <p class="success-sub">Your 14-day Clarivise Scan trial is active. Copy your token below and paste it into the extension settings.</p>
+      <div class="trial-countdown"><span>●</span><span id="days-remaining"></span> days remaining</div>
+      <div class="token-label">Your extension token</div>
+      <div class="token-box" id="trial-token"></div>
+      <button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:12px" onclick="copyToken()">Copy token</button>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6">Next: Install Clarivise Scan from the Chrome Web Store, click the extension icon, go to Connection, and paste your token.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PRIVACY -->
+<div class="page" id="page-privacy">
+<div class="legal-page">
+  <div class="section-label">Legal</div>
+  <h1>Privacy Policy</h1>
+  <div class="legal-date">LAST UPDATED: MARCH 27, 2026</div>
+  <h2>Overview</h2>
+  <p>Clarivise is an AI-powered email security platform consisting of two products: Clarivise Scan (a Chrome extension) and Clarivise Shield (an automated M365 email pipeline). This policy explains what data is collected, how it flows, and how it is protected.</p>
+  <h2>Data Collected During Email Analysis</h2>
+  <p>When an email is analyzed, the following is extracted and sent to our secure analysis service:</p>
+  <ul>
+    <li>Email subject line</li><li>Sender display name and email address</li><li>Recipient / To line</li>
+    <li>Email body text (up to 3,000 characters)</li><li>Hyperlink display text and destination domains</li>
+    <li>Attachment file names (if present)</li><li>Whether the sender was flagged as external by your mail provider</li>
+  </ul>
+  <p>No email content beyond these fields is collected or transmitted. Full message bodies are never stored in our database.</p>
+  <h2>Data Flow</h2>
+  <table>
+    <tr><th>Step</th><th>What happens</th><th>Who can see email content?</th></tr>
+    <tr><td>1. Your device</td><td>Email data is read locally</td><td>You only</td></tr>
+    <tr><td>2. Network transit</td><td>Data sent over HTTPS (TLS encrypted)</td><td>No one (encrypted)</td></tr>
+    <tr><td>3. Supabase Edge Function</td><td>Validates credentials, builds AI prompt</td><td>In memory only — not stored</td></tr>
+    <tr><td>4. Anthropic API</td><td>Analyzes email and returns verdict</td><td>Anthropic (see below)</td></tr>
+    <tr><td>5. Response</td><td>Result returned and displayed</td><td>You only</td></tr>
+  </table>
+  <h2>Anthropic API</h2>
+  <p>Clarivise uses the Anthropic Claude API for email analysis. Per Anthropic's policy, API inputs are not used for model training by default, and data may be retained for up to 30 days for trust and safety purposes.</p>
+  <h2>Scan Logging</h2>
+  <p>Each analysis logs the following for usage reporting: a hashed token identifier, verdict, phishing and spam scores, response time, timestamp, and truncated subject/sender/recipient. Message body text is never written to the scan log.</p>
+  <h2>Data Sharing</h2>
+  <p>Clarivise does not sell, share, or disclose any user data to any third party. Email data is transmitted only to Supabase (infrastructure, data processor) transiently during analysis, and to Anthropic (AI provider) for email analysis.</p>
+  <h2>Contact</h2>
+  <p>Questions? Contact us at <a href="mailto:privacy@clarivise.ai">privacy@clarivise.ai</a>.</p>
+</div>
+</div>
+
+<!-- TERMS -->
+<div class="page" id="page-terms">
+<div class="legal-page">
+  <div class="section-label">Legal</div>
+  <h1>Terms and Conditions</h1>
+  <div class="legal-date">EFFECTIVE: APRIL 4, 2026 — GOVERNING JURISDICTION: ALBERTA, CANADA</div>
+  <div class="legal-notice">BY INSTALLING OR USING CLARIVISE, OR BY SUBMITTING INFORMATION THROUGH OUR SIGNUP PORTAL, YOU AGREE TO THESE TERMS.</div>
+  <h2>1. Definitions</h2>
+  <p><strong>"Software"</strong> means Clarivise Scan, Clarivise Shield, related documentation, and any signup portal operated by Clarivise Inc. <strong>"Clarivise," "we," "us"</strong> means Clarivise Inc. <strong>"You"</strong> means the individual or organization using the Software.</p>
+  <h2>2. Nature of the Service</h2>
+  <p>The Software uses AI to suggest whether an email may be spam, phishing, or suspicious. Outputs are <strong>probabilistic</strong> and may be wrong. The Software supplements — but does not replace — your own judgment and security practices. <strong>You remain solely responsible</strong> for decisions you make about emails.</p>
+  <h2>3. Disclaimer of Warranties</h2>
+  <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED <strong>"AS IS."</strong> CLARIVISE DISCLAIMS ALL WARRANTIES INCLUDING MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.</p>
+  <h2>4. Limitation of Liability</h2>
+  <p>CLARIVISE'S TOTAL LIABILITY SHALL NOT EXCEED THE GREATER OF (A) AMOUNTS YOU PAID IN THE TWELVE MONTHS BEFORE THE CLAIM, OR (B) CAD $100. CLARIVISE IS NOT LIABLE FOR EMAIL MISCLASSIFICATION, SECURITY INCIDENTS, OR FINANCIAL LOSS ARISING FROM USE OF THE SOFTWARE.</p>
+  <h2>5. Indemnity</h2>
+  <p>You will indemnify and hold harmless Clarivise from claims arising from your use of the Software or your violation of these Terms.</p>
+  <h2>6. License and Restrictions</h2>
+  <p>Clarivise grants you a limited, non-exclusive, revocable license to use the Software. You may not reverse engineer, resell, or use the Software to build a competing product.</p>
+  <h2>7. Governing Law</h2>
+  <p>These Terms are governed by the laws of the Province of Alberta and the federal laws of Canada. You attorn to the exclusive jurisdiction of the courts in Alberta.</p>
+  <h2>8. Contact</h2>
+  <p>Questions? Contact us at <a href="mailto:legal@clarivise.ai">legal@clarivise.ai</a>.</p>
+  <hr class="legal-divider">
+  <p style="font-size:12px;color:var(--muted)">© 2026 Clarivise Inc. All rights reserved.</p>
+</div>
+</div>
+
+<footer>
+  <div class="footer-logo" onclick="showPage('home')">Clarivise</div>
+  <ul class="footer-links">
+    <li><a onclick="showPage('privacy')">Privacy Policy</a></li>
+    <li><a onclick="showPage('terms')">Terms of Service</a></li>
+    <li><a href="mailto:hello@clarivise.ai">Contact</a></li>
+  </ul>
+  <div class="footer-copy">© 2026 Clarivise Inc.</div>
+</footer>
+
+<script>
+document.documentElement.setAttribute('data-theme','dark');
+const saved=localStorage.getItem('clarivise-theme');
+if(saved)document.documentElement.setAttribute('data-theme',saved);
+
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const c=document.documentElement.getAttribute('data-theme');
+  const n=c==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);
+  localStorage.setItem('clarivise-theme',n);
+});
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  observeReveals();
+}
+
+function scrollTo(sel){
+  setTimeout(()=>{const el=document.querySelector(sel);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},50);
+}
+
+function observeReveals(){
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach((e,i)=>{if(e.isIntersecting)setTimeout(()=>e.target.classList.add('visible'),i*80)});
+  },{threshold:0.08});
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el=>obs.observe(el));
+}
+observeReveals();
+
+window.addEventListener('scroll',()=>{
+  document.querySelector('nav').style.borderBottomColor=
+    window.scrollY>50?'rgba(14,165,233,0.28)':'rgba(14,165,233,0.15)';
+});
+
+async function submitTrial(){
+  const btn=document.getElementById('signup-btn');
+  const err=document.getElementById('signup-error');
+  const name=document.getElementById('f-name').value.trim();
+  const email=document.getElementById('f-email').value.trim();
+  const company=document.getElementById('f-company').value.trim();
+  err.classList.remove('visible');
+  if(!name||!email||!company){err.textContent='Please fill in all fields.';err.classList.add('visible');return}
+  if(!/^[^@]+@[^@]+\.[^@]+$/.test(email)){err.textContent='Please enter a valid email address.';err.classList.add('visible');return}
+  btn.disabled=true;btn.textContent='Starting trial...';
+  try{
+    const res=await fetch('https://pikplhvawbhndijpkdbq.supabase.co/functions/v1/start-trial',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,email,company})
+    });
+    const data=await res.json();
+    if(!res.ok||data.error){
+      err.textContent=data.error||'Something went wrong. Please try again.';
+      err.classList.add('visible');btn.disabled=false;btn.textContent='Start free trial →';return;
+    }
+    document.getElementById('trial-token').textContent=data.token;
+    const days=Math.max(0,Math.ceil((new Date(data.trial_ends_at)-new Date())/86400000));
+    document.getElementById('days-remaining').textContent=days;
+    document.getElementById('signup-form-inner').style.display='none';
+    document.getElementById('signup-success').classList.add('visible');
+  }catch(e){
+    err.textContent='Network error. Please check your connection and try again.';
+    err.classList.add('visible');btn.disabled=false;btn.textContent='Start free trial →';
+  }
+}
+
+function copyToken(){
+  const token=document.getElementById('trial-token').textContent;
+  navigator.clipboard.writeText(token).then(()=>{
+    event.target.textContent='✓ Copied!';
+    setTimeout(()=>event.target.textContent='Copy token',2000);
+  });
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('page-signup').classList.contains('active'))submitTrial();
+});
+</script>
 </body>
 </html>
